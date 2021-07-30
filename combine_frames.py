@@ -31,6 +31,9 @@ t_err = 1 / np.sqrt(t_err_rec)
 
 snr = t_flux / t_err
 
+snr[snr < -20] = np.nan
+snr[snr > 20] = np.nan
+
 print("frames combined: ", len(fluxs.keys()))
 print("max SNR: ", np.nanmax(snr))
 x, y = np.unravel_index(np.nanargmax(snr), snr.shape)
@@ -38,7 +41,7 @@ xS, yS = np.array(snr.shape) / 2
 print("relative position: ", (y - yS, x - xS))
 
 plt.figure()
-plt.imshow(snr,origin="lower", vmin=0, vmax=5)
+plt.imshow(snr,origin="lower", vmin=-15, vmax=15)
 plt.plot(yS, xS, "rX")
 plt.plot(y, x, "b.")
 cbar = plt.colorbar()

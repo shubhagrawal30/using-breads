@@ -43,7 +43,7 @@ model_spec = 10 ** (arr[:, 1] - 8)
 tr_counter = 0
 tr_total = 6
 
-for filename in files[11:]:
+for filename in files[5:12]:
     if ".fits" not in filename:
         print("skipping ", filename)
         continue
@@ -71,7 +71,7 @@ for filename in files[11:]:
     # SR3
     tr_counter = (tr_counter + 1) % tr_total
     tr_file = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/second/reduced/spectra/s210626_a037" \
-        + format(tr_counter+1, '03d') + "_Kn5_020_spectrum.fits"
+        + format(tr_counter+2, '03d') + "_Kn5_020_spectrum.fits"
     
     # +filename[12:-13]
     print("Reading transmission file", tr_file)
@@ -90,7 +90,7 @@ for filename in files[11:]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":3,"nodes":4,"psfw":1.2,"nodes":5,"badpixfraction":0.75}
+            "boxw":1,"nodes":4,"psfw":1.2,"nodes":5,"badpixfraction":0.75}
     fm_func = hc_splinefm
     rvs = np.array([0])
     ys = np.arange(-30, 30)
@@ -99,7 +99,7 @@ for filename in files[11:]:
     print(dataobj.data.shape, dataobj.wavelengths.shape, transmission.shape, star_spectrum.shape)
 
     if True: # Example code to test the forward model
-        nonlin_paras = [0, -17, 4] # rv (km/s), y (pix), x (pix)
+        nonlin_paras = [0, 10, 21] # rv (km/s), y (pix), x (pix)
         # d is the data vector a the specified location
         # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
         # s is the vector of uncertainties corresponding to d
@@ -124,6 +124,7 @@ for filename in files[11:]:
         plt.plot(m,label="model")
         plt.plot(paras[0]*M[:,0],label="planet model")
         plt.plot(m-paras[0]*M[:,0],label="starlight model")
+        plt.legend()
         plt.subplot(2,1,2)
         plt.plot(M[:,0]/np.max(M[:,0]),label="planet model")
         for k in range(M.shape[-1]-1):
