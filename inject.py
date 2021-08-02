@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 from  scipy.interpolate import interp1d
 import os
 import astropy.io.fits as pyfits
-
+from pathlib import Path
+from breads.fit import fitfm
 
 print("Importing mkl")
 try:
@@ -18,19 +19,47 @@ except:
 
 print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
-from breads.injection import inject_planet
+from breads.injection import inject_planet, read_planet_info
+from breads.search_planet import search_planet
+from breads.fm.hc_splinefm import hc_splinefm
 
-numthreads = 4
+numthreads = 16
 dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
 fil = os.listdir(dir_name)[1]
 
 planet_btsettl = "/scr3/jruffio/models/BT-Settl/BT-Settl_M-0.0_a+0.0/lte018-5.0-0.0a+0.0.BT-Settl.spec.7"
 tr_file = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/spectra/s210626_a018002_Kn5_020_spectrum.fits"
 spec_file = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"+"spectra/"+fil[:-5]+"_spectrum.fits"
+sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a004002_Kn3_020_calib.fits"
 
 dataobj = OSIRIS(dir_name+fil) 
+dataobj.calibrate(sky_calib_file)
 dataobj.remove_bad_pixels()
 
+planet_f = read_planet_info(planet_btsettl, True, True, 0.2, dataobj)
+
+print("Reading transmission file", tr_file)
+with pyfits.open(tr_file) as hdulist:
+    transmission = hdulist[0].data
+
+print("Reading spectrum file", spec_file)
+with pyfits.open(spec_file) as hdulist:
+    star_spectrum = hdulist[2].data
+    mu_x = hdulist[3].data
+    mu_y = hdulist[4].data
+
+print("setting reference position")
+dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
+print(dataobj.refpos)
+
+fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+        "boxw":5,"nodes":4,"psfw":1.2,"nodes":5,"badpixfraction":0.75}
+fm_func = hc_splinefm
+rvs = np.array([0])
+ys = np.arange(-15, 15)
+xs = np.arange(-15, 15)
+
+#####################################3
 print("plotting image before injection")
 plt.figure()
 plt.title("before injection (one slice)")
@@ -42,7 +71,19 @@ plt.title("before injection (median)")
 plt.imshow(np.nanmedian(dataobj.data, axis=0), origin="lower")
 cbar = plt.colorbar()
 
-inject_planet(dataobj, (-10, -10), planet_btsettl, spec_file, tr_file, 1)
+print("SNR time")
+out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
+N_linpara = (out.shape[-1]-2)//2
+print(out.shape)
+plt.figure()
+plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower")
+cbar = plt.colorbar()
+cbar.set_label("SNR before injection")
+# plt.show()
+
+
+########################
+inject_planet(dataobj, (-10, -10), planet_f, spec_file, transmission, 1)
 
 print("plotting image after injection")
 plt.figure()
@@ -55,4 +96,12 @@ plt.title("after injection (median)")
 plt.imshow(np.nanmedian(dataobj.data, axis=0), origin="lower")
 cbar = plt.colorbar()
 
+print("SNR time")
+out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
+N_linpara = (out.shape[-1]-2)//2
+print(out.shape)
+plt.figure()
+plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower")
+cbar = plt.colorbar()
+cbar.set_label("SNR after injection")
 plt.show()
