@@ -17,7 +17,10 @@ for fil in files:
     if "_out.fits" not in fil:
         print("skipping", fil)
         continue
-    print(fil)
+    if "a0390" in fil:
+        print("SKIP", fil)
+        continue
+    print("DOING", fil)
     with pyfits.open(frames_dir + fil) as hdulist:
         out = hdulist[0].data
     N_linpara = (out.shape[-1]-2)//2
