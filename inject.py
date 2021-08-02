@@ -65,11 +65,13 @@ plt.figure()
 plt.title("before injection (one slice)")
 plt.imshow(dataobj.data[0], origin="lower")
 cbar = plt.colorbar()
+plt.savefig(f"./plots/injection/HD148352/before_slice.png")
 
 plt.figure()
 plt.title("before injection (median)")
 plt.imshow(np.nanmedian(dataobj.data, axis=0), origin="lower")
 cbar = plt.colorbar()
+plt.savefig(f"./plots/injection/HD148352/before_median.png")
 
 print("SNR time")
 out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
@@ -79,22 +81,37 @@ plt.figure()
 plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower")
 cbar = plt.colorbar()
 cbar.set_label("SNR before injection")
+plt.savefig(f"./plots/injection/HD148352/before_SNR.png")
 # plt.show()
+
+hdulist = pyfits.HDUList()
+hdulist.append(pyfits.PrimaryHDU(data=dataobj.data, \
+    header=pyfits.Header(cards={"TYPE": "data", "FILE": fil, "SKY_CALIB": sky_calib_file})))  
+hdulist.append(pyfits.PrimaryHDU(data=out, header=pyfits.Header(cards={"TYPE": "data", \
+    "PLANET": planet_btsettl, "FLUX": spec_file, "TRANS": tr_file, "SKY_CALIB": sky_calib_file})))                                  
+try:
+    hdulist.writeto("./plots/injection/HD148352/before.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto("./plots/injection/HD148352/before.fits", clobber=True)
+hdulist.close()
 
 
 ########################
-inject_planet(dataobj, (-10, -10), planet_f, spec_file, transmission, 1)
+flux_ratio = 0.1
+inject_planet(dataobj, (-10, -10), planet_f, spec_file, transmission, flux_ratio)
 
 print("plotting image after injection")
 plt.figure()
 plt.imshow(dataobj.data[0], origin="lower")
 plt.title("after injection (one slice)")
 cbar = plt.colorbar()
+plt.savefig(f"./plots/injection/HD148352/after_slice_{flux_ratio}.png")
 
 plt.figure()
 plt.title("after injection (median)")
 plt.imshow(np.nanmedian(dataobj.data, axis=0), origin="lower")
 cbar = plt.colorbar()
+plt.savefig(f"./plots/injection/HD148352/after_median_{flux_ratio}.png")
 
 print("SNR time")
 out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
@@ -104,4 +121,16 @@ plt.figure()
 plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower")
 cbar = plt.colorbar()
 cbar.set_label("SNR after injection")
+plt.savefig(f"./plots/injection/HD148352/after_SNR_{flux_ratio}.png")
+
+hdulist = pyfits.HDUList()
+hdulist.append(pyfits.PrimaryHDU(data=dataobj.data, header=pyfits.Header(cards={"TYPE": "data"})))  
+hdulist.append(pyfits.PrimaryHDU(data=out, header=pyfits.Header(cards={"TYPE": "data", \
+    "PLANET": planet_btsettl, "FLUX": spec_file, "TRANS": tr_file, "SKY_CALIB": sky_calib_file})))                                  
+try:
+    hdulist.writeto("./plots/injection/HD148352/before.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto("./plots/injection/HD148352/before.fits", clobber=True)
+hdulist.close()
+
 plt.show()

@@ -90,7 +90,7 @@ for filename in files[5:12]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":1,"nodes":4,"psfw":1.2,"nodes":5,"badpixfraction":0.75}
+            "boxw":5,"nodes":4,"psfw":1.2,"nodes":5,"badpixfraction":0.75}
     fm_func = hc_splinefm
     rvs = np.array([0])
     ys = np.arange(-30, 30)
@@ -98,7 +98,7 @@ for filename in files[5:12]:
 
     print(dataobj.data.shape, dataobj.wavelengths.shape, transmission.shape, star_spectrum.shape)
 
-    if True: # Example code to test the forward model
+    if False: # Example code to test the forward model
         nonlin_paras = [0, 10, 21] # rv (km/s), y (pix), x (pix)
         # d is the data vector a the specified location
         # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
@@ -140,20 +140,21 @@ for filename in files[5:12]:
     N_linpara = (out.shape[-1]-2)//2
     print(out.shape)
 
-    hdulist = pyfits.HDUList()
-    hdulist.append(pyfits.PrimaryHDU(data=out,
-        header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
-                                    "FLUX": spec_file, "TRANS": tr_file})))                                  
-    try:
-        hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", overwrite=True)
-    except TypeError:
-        hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", clobber=True)
-    hdulist.close()
+    # hdulist = pyfits.HDUList()
+    # hdulist.append(pyfits.PrimaryHDU(data=out,
+    #     header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
+    #                                 "FLUX": spec_file, "TRANS": tr_file})))                                  
+    # try:
+    #     hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", overwrite=True)
+    # except TypeError:
+    #     hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", clobber=True)
+    # hdulist.close()
 
     plt.figure()
-    plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower")
+    plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower", vmin=-10, vmax=10)
     cbar = plt.colorbar()
     cbar.set_label("SNR")
-    plt.savefig(dir_name+"planets/REF/"+filename[:-5]+"_snr.png")
+    plt.show()
+    # plt.savefig(dir_name+"planets/REF/"+filename[:-5]+"_snr.png")
     plt.close()
 
