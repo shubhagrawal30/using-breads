@@ -24,7 +24,8 @@ from breads.fm.hc_splinefm import hc_splinefm
 
 numthreads = 4
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
 files = os.listdir(dir_name)
 
 # print(files.index("s210626_a033011_Kn5_020.fits"))
@@ -43,7 +44,7 @@ model_spec = 10 ** (arr[:, 1] - 8)
 tr_counter = 0
 tr_total = 6
 
-for filename in files[5:12]:
+for filename in files[:12]:
     if ".fits" not in filename:
         print("skipping ", filename)
         continue
@@ -52,7 +53,7 @@ for filename in files[5:12]:
     nz,ny,nx = dataobj.data.shape
     dataobj.noise = np.ones((nz,ny,nx))
 
-    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a004002_Kn3_020_calib.fits"
+    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210626_a002002_Kn3_020_calib.fits"
     dataobj.calibrate(sky_calib_file)
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
