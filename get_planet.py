@@ -28,7 +28,10 @@ numthreads = 4
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR4/210627/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
 files = os.listdir(dir_name)
 
 # print(files.index("s210626_a033011_Kn5_020.fits"))
@@ -44,7 +47,7 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210628/second/reduced/spectra/"
+tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210627/first/reduced/spectra/"
 tr_files = os.listdir(tr_dir)
 tr_counter = 0
 tr_total = len(tr_files)
@@ -58,7 +61,7 @@ for filename in files[:]:
     nz,ny,nx = dataobj.data.shape
     dataobj.noise = np.ones((nz,ny,nx))
 
-    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210628_a002002_Kn3_020_calib.fits"
+    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/s210627_a003002_Kn3_020_calib.fits"
     dataobj.calibrate(sky_calib_file)
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
@@ -97,7 +100,7 @@ for filename in files[:]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
+            "boxw":3,"nodes":5,"psfw":1.5,"badpixfraction":0.75}
     fm_func = hc_splinefm
     rvs = np.array([0])
     ys = np.arange(-30, 30)

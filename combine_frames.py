@@ -8,8 +8,10 @@ import os
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/planets/REF/"
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/planets/REF/"
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/planets/REF/"
-frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/planets/REF/"
-target = "SR9"
+# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/planets/REF/"
+# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR4/210627/reduced/planets/REF/"
+frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/planets/REF/"
+target = "HD148352"
 files = os.listdir(frames_dir)
 
 fluxs = {}
@@ -39,8 +41,8 @@ t_err = 1 / np.sqrt(t_err_rec)
 
 snr = t_flux / t_err
 
-snr[snr < -20] = np.nan
-snr[snr > 30] = np.nan
+snr[snr < -30] = np.nan
+# snr[snr > 400] = np.nan
 
 print("frames combined: ", len(fluxs.keys()))
 print("max SNR: ", np.nanmax(snr))
