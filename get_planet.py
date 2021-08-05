@@ -25,7 +25,8 @@ from breads.fm.hc_splinefm import hc_splinefm
 numthreads = 4
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/"
 files = os.listdir(dir_name)
 
 # print(files.index("s210626_a033011_Kn5_020.fits"))
@@ -41,10 +42,12 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
+tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210628/first/reduced/spectra/"
+tr_files = os.listdir(tr_dir)
 tr_counter = 0
-tr_total = 5
+tr_total = len(tr_files)
 
-for filename in files[2:]:
+for filename in files[:]:
     if ".fits" not in filename:
         print("skipping ", filename)
         continue
@@ -53,7 +56,7 @@ for filename in files[2:]:
     nz,ny,nx = dataobj.data.shape
     dataobj.noise = np.ones((nz,ny,nx))
 
-    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210628_a002002_Kn3_020_calib.fits"
+    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210628_a002003_Kn3_020_calib.fits"
     dataobj.calibrate(sky_calib_file)
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
@@ -71,9 +74,10 @@ for filename in files[2:]:
     # tr_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     # SR3
     tr_counter = (tr_counter + 1) % tr_total
-    tr_file = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/reduced/spectra/s210628_a004" \
-        + format(tr_counter+4, '03d') + "_Kn5_020_spectrum.fits"
-    
+    # tr_file = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/reduced/spectra/s210628_a004" \
+    #     + format(tr_counter+4, '03d') + "_Kn5_020_spectrum.fits"
+    tr_file = tr_dir + tr_files[tr_counter]
+
     # +filename[12:-13]
     print("Reading transmission file", tr_file)
     with pyfits.open(tr_file) as hdulist:
