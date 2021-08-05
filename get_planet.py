@@ -44,7 +44,7 @@ model_spec = 10 ** (arr[:, 1] - 8)
 tr_counter = 0
 tr_total = 5
 
-for filename in files[:12]:
+for filename in files[2:]:
     if ".fits" not in filename:
         print("skipping ", filename)
         continue
@@ -53,7 +53,7 @@ for filename in files[:12]:
     nz,ny,nx = dataobj.data.shape
     dataobj.noise = np.ones((nz,ny,nx))
 
-    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210626_a002002_Kn3_020_calib.fits"
+    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210628_a002002_Kn3_020_calib.fits"
     dataobj.calibrate(sky_calib_file)
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
@@ -71,7 +71,7 @@ for filename in files[:12]:
     # tr_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     # SR3
     tr_counter = (tr_counter + 1) % tr_total
-    tr_file = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/second/reduced/spectra/s210628_a037" \
+    tr_file = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/reduced/spectra/s210628_a004" \
         + format(tr_counter+4, '03d') + "_Kn5_020_spectrum.fits"
     
     # +filename[12:-13]
@@ -137,7 +137,7 @@ for filename in files[:12]:
         exit()
 
     print("SNR time")
-    out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=None)
+    out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
     N_linpara = (out.shape[-1]-2)//2
     print(out.shape)
 

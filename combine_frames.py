@@ -4,7 +4,9 @@ import numpy as np
 import os
 
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/planets/REF/"
-frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/planets/REF/"
+# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/planets/REF/"
+frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/planets/REF/"
+target = "ROXs35A"
 files = os.listdir(frames_dir)
 
 fluxs = {}
@@ -50,7 +52,7 @@ plt.plot(y, x, "b.")
 cbar = plt.colorbar()
 cbar.set_label("SNR")
 plt.savefig(frames_dir+"combined.png")
-plt.savefig("./plots/combined_SR21A.png")
+plt.savefig(f"./plots/combined_{target}.png")
 plt.show()
 plt.close()
 hdulist = pyfits.HDUList()
@@ -62,9 +64,9 @@ hdulist.append(pyfits.PrimaryHDU(data=t_err,
     header=pyfits.Header(cards={"TYPE": "total err", "DIR": frames_dir})))   
                              
 try:
-    hdulist.writeto("./plots/combined_SR21A.fits", overwrite=True)
+    hdulist.writeto(f"./plots/combined_{target}.fits", overwrite=True)
 except TypeError:
-    hdulist.writeto("./plots/combined_SR21A.fits", clobber=True)
+    hdulist.writeto(f"./plots/combined_{target}.fits", clobber=True)
 hdulist.close()
 
 
