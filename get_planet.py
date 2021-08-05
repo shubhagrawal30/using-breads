@@ -31,7 +31,8 @@ numthreads = 4
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR4/210627/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs8/210627/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs8/210627/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
 files = os.listdir(dir_name)
 
 # print(files.index("s210626_a033011_Kn5_020.fits"))
@@ -47,7 +48,7 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210627/first/reduced/spectra/"
+tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210627/second/reduced/spectra/"
 tr_files = os.listdir(tr_dir)
 tr_counter = 0
 tr_total = len(tr_files)
