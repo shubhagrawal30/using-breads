@@ -6,7 +6,8 @@ import os
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/planets/REF/"
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/planets/REF/"
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/planets/REF/"
-frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/planets/REF/"
+# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/planets/REF/"
+frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/planets/REF/"
 target = "SR14"
 files = os.listdir(frames_dir)
 
@@ -20,9 +21,9 @@ for fil in files:
     if "_out.fits" not in fil:
         print("skipping", fil)
         continue
-#     if "a007" not in fil:
-#         print("SKIP", fil)
-#         continue
+    # if "a015" not in fil and "a015" not in fil:
+    #     print("SKIP", fil)
+    #     continue
     print("DOING", fil)
     with pyfits.open(frames_dir + fil) as hdulist:
         out = hdulist[0].data
@@ -47,8 +48,8 @@ xS, yS = np.array(snr.shape) / 2
 print("relative position: ", (y - yS, x - xS))
 
 plt.figure()
-plt.imshow(snr, origin="lower", vmin=-20, vmax=25)
-# plt.imshow(snr, origin="lower")
+# plt.imshow(snr, origin="lower", vmin=-20, vmax=25)
+plt.imshow(snr, origin="lower")
 plt.plot(yS, xS, "rX")
 plt.plot(y, x, "b.")
 cbar = plt.colorbar()

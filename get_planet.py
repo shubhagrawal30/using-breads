@@ -27,6 +27,7 @@ numthreads = 4
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/"
 files = os.listdir(dir_name)
 
 # print(files.index("s210626_a033011_Kn5_020.fits"))
