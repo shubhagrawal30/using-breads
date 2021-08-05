@@ -35,6 +35,6 @@ for fil in files:
     plt.savefig(dir_name+"spectra/plots/"+fil[:-5]+"_transmission.png")
     plt.close()
     plt.figure()
-    plt.plot(obj.read_wavelengths, obj.fluxes)
+    plt.plot(obj.read_wavelengths, obj.fluxs)
     plt.savefig(dir_name+"spectra/plots/"+fil[:-5]+"_flux.png")
     plt.close()

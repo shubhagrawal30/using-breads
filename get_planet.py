@@ -42,7 +42,7 @@ model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
 tr_counter = 0
-tr_total = 6
+tr_total = 5
 
 for filename in files[:12]:
     if ".fits" not in filename:
@@ -71,8 +71,8 @@ for filename in files[:12]:
     # tr_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     # SR3
     tr_counter = (tr_counter + 1) % tr_total
-    tr_file = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/second/reduced/spectra/s210626_a037" \
-        + format(tr_counter+2, '03d') + "_Kn5_020_spectrum.fits"
+    tr_file = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/second/reduced/spectra/s210628_a037" \
+        + format(tr_counter+4, '03d') + "_Kn5_020_spectrum.fits"
     
     # +filename[12:-13]
     print("Reading transmission file", tr_file)
@@ -91,7 +91,7 @@ for filename in files[:12]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":5,"nodes":4,"psfw":1.2,"nodes":5,"badpixfraction":0.75}
+            "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
     fm_func = hc_splinefm
     rvs = np.array([0])
     ys = np.arange(-30, 30)
@@ -141,21 +141,21 @@ for filename in files[:12]:
     N_linpara = (out.shape[-1]-2)//2
     print(out.shape)
 
-    # hdulist = pyfits.HDUList()
-    # hdulist.append(pyfits.PrimaryHDU(data=out,
-    #     header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
-    #                                 "FLUX": spec_file, "TRANS": tr_file})))                                  
-    # try:
-    #     hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", overwrite=True)
-    # except TypeError:
-    #     hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", clobber=True)
-    # hdulist.close()
+    hdulist = pyfits.HDUList()
+    hdulist.append(pyfits.PrimaryHDU(data=out,
+        header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
+                                    "FLUX": spec_file, "TRANS": tr_file})))                                  
+    try:
+        hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", overwrite=True)
+    except TypeError:
+        hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", clobber=True)
+    hdulist.close()
 
     plt.figure()
     plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower", vmin=-10, vmax=10)
     cbar = plt.colorbar()
     cbar.set_label("SNR")
-    plt.show()
-    # plt.savefig(dir_name+"planets/REF/"+filename[:-5]+"_snr.png")
+    # plt.show()
+    plt.savefig(dir_name+"planets/REF/"+filename[:-5]+"_snr.png")
     plt.close()
 
