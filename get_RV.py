@@ -78,21 +78,21 @@ model_broadspec = dataobj.broaden(model_wvs,model_spec)
 planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
 fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-        "boxw":3,"nodes":5,"psfw":1.5,"badpixfraction":0.75}
+        "boxw":1,"nodes":20,"psfw":1.5,"badpixfraction":0.75}
 fm_func = hc_splinefm
 # from breads.fm.hc_hpffm import hc_hpffm
 # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
 #             "boxw":1,"psfw":1.2,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
 # fm_func = hc_hpffm
-# rvs = np.linspace(-2000,2000,2001)
-rvs = [-7]
+rvs = np.linspace(-4000,4000,4001)
+# rvs = [0]
 # ys = [43]
 # xs = [44]
-ys = [-2, -1, 0]
-xs = [-13, -14, -15]
+# ys = [-2]
+# xs = [-15]
 
 if False: # Example code to test the forward model
-    nonlin_paras = [0,34,39] # rv (km/s), y (pix), x (pix)
+    nonlin_paras = [0,-2,-15] # rv (km/s), y (pix), x (pix)
     # d is the data vector a the specified location
     # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
     # s is the vector of uncertainties corresponding to d
@@ -113,6 +113,7 @@ if False: # Example code to test the forward model
     plt.plot(m,label="model")
     plt.plot(paras[0]*M[:,0],label="planet model")
     plt.plot(m-paras[0]*M[:,0],label="starlight model")
+    plt.legend()
     plt.subplot(2,1,2)
     plt.plot(M[:,0]/np.max(M[:,0]),label="planet model")
     for k in range(M.shape[-1]-1):
@@ -121,6 +122,7 @@ if False: # Example code to test the forward model
     plt.legend()
     plt.show()
     plt.close('all')
+    exit()
 
 print("RV time")
 out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
@@ -128,22 +130,22 @@ N_linpara = (out.shape[-1]-2)//2
 print(out.shape)
 
 print("plotting")
-# plt.figure()
-# plt.plot(rvs,np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))
-# plt.ylabel("RV posterior")
-# plt.xlabel("RV (km/s)")
-# plt.title(rvs[np.nanargmax(np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))])
-# plt.show()
-
-# plt.figure()
-# plt.plot(rvs,out[:,0,0,3]/out[:,0,0,3+N_linpara])
-# plt.ylabel("SNR")
-# plt.xlabel("RV (km/s)")
-# plt.show()
+plt.figure()
+plt.plot(rvs,np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))
+plt.ylabel("RV posterior")
+plt.xlabel("RV (km/s)")
+plt.title(rvs[np.nanargmax(np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))])
+plt.show()
 
 plt.figure()
-plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower")
-cbar = plt.colorbar()
-cbar.set_label("SNR")
+plt.plot(rvs,out[:,0,0,3]/out[:,0,0,3+N_linpara])
+plt.ylabel("SNR")
+plt.xlabel("RV (km/s)")
 plt.show()
-plt.close()
+
+# plt.figure()
+# plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower")
+# cbar = plt.colorbar()
+# cbar.set_label("SNR")
+# plt.show()
+# plt.close()
