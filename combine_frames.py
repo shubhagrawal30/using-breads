@@ -11,9 +11,9 @@ import os
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/planets/REF/"
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR4/210627/reduced/planets/REF/"
 # frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/planets/REF/"
-frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs8/210627/reduced/planets/REF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/planets/REF/"
-target = "ROXs8"
+# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs8/210627/reduced/planets/REF/"
+frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/planets/REF/"
+target = "ROXs4"
 files = os.listdir(frames_dir)
 
 fluxs = {}

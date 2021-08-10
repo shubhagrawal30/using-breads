@@ -21,8 +21,9 @@ print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
 from breads.search_planet import search_planet
 from breads.fm.hc_splinefm import hc_splinefm
+from breads.fm.hc_no_splinefm import hc_no_splinefm
 
-numthreads = 4
+numthreads = 16
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
@@ -39,7 +40,7 @@ files = os.listdir(dir_name)
 # exit()
 
 print("making subdirectories")
-Path(dir_name+"planets/REF/").mkdir(parents=True, exist_ok=True)
+Path(dir_name+"planets/NO/").mkdir(parents=True, exist_ok=True)
 
 print("Reading planet file")
 planet_btsettl = "/scr3/jruffio/models/BT-Settl/BT-Settl_M-0.0_a+0.0/lte018-5.0-0.0a+0.0.BT-Settl.spec.7"
@@ -100,12 +101,16 @@ for filename in files[:]:
     model_broadspec = dataobj.broaden(model_wvs,model_spec)
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
+    # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+    #         "boxw":3,"nodes":5,"psfw":1.5,"badpixfraction":0.75}
+    # fm_func = hc_splinefm
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":3,"nodes":5,"psfw":1.5,"badpixfraction":0.75}
-    fm_func = hc_splinefm
+            "boxw":3,"nodes":5,"psfw":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+            "badpixfraction":0.75,"optimize_nodes":True}
+    fm_func = hc_no_splinefm
     rvs = np.array([0])
     ys = np.arange(-30, 30)
-    xs = np.arange(-30, 30)
+    xs = np.arange(-20, 20)
 
     print(dataobj.data.shape, dataobj.wavelengths.shape, transmission.shape, star_spectrum.shape)
 
@@ -156,9 +161,9 @@ for filename in files[:]:
         header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
                                     "FLUX": spec_file, "TRANS": tr_file})))                                  
     try:
-        hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", overwrite=True)
+        hdulist.writeto(dir_name+"planets/NO/"+filename[:-5]+"_out.fits", overwrite=True)
     except TypeError:
-        hdulist.writeto(dir_name+"planets/REF/"+filename[:-5]+"_out.fits", clobber=True)
+        hdulist.writeto(dir_name+"planets/NO/"+filename[:-5]+"_out.fits", clobber=True)
     hdulist.close()
 
     plt.figure()
@@ -166,6 +171,6 @@ for filename in files[:]:
     cbar = plt.colorbar()
     cbar.set_label("SNR")
     # plt.show()
-    plt.savefig(dir_name+"planets/REF/"+filename[:-5]+"_snr.png")
+    plt.savefig(dir_name+"planets/NO/"+filename[:-5]+"_snr.png")
     plt.close()
 

@@ -19,8 +19,9 @@ print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
 from breads.search_planet import search_planet
 from breads.fm.hc_splinefm import hc_splinefm
+from breads.fm.hc_no_splinefm import hc_no_splinefm
 
-numthreads = 4
+numthreads = 8
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
 dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
 
@@ -35,7 +36,9 @@ model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
 # filename = "s210626_a032002_Kn5_020.fits"
-filename = "s210627_a046004_Kn5_020.fits"
+# filename = "s210627_a046004_Kn5_020.fits"
+filename = "s210627_a048005_Kn5_020.fits"
+
 print(filename)
 dataobj = OSIRIS(dir_name+filename) 
 nz,ny,nx = dataobj.data.shape
@@ -78,21 +81,26 @@ model_broadspec = dataobj.broaden(model_wvs,model_spec)
 planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
 fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-        "boxw":1,"nodes":20,"psfw":1.5,"badpixfraction":0.75}
-fm_func = hc_splinefm
+            "boxw":3,"nodes":5,"psfw":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+            "badpixfraction":0.75,"optimize_nodes":True}
+fm_func = hc_no_splinefm
+
+# fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+#         "boxw":1,"nodes":20,"psfw":1.5,"badpixfraction":0.75}
+# fm_func = hc_splinefm
 # from breads.fm.hc_hpffm import hc_hpffm
 # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
 #             "boxw":1,"psfw":1.2,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
 # fm_func = hc_hpffm
-rvs = np.linspace(-4000,4000,4001)
+rvs = np.linspace(-2000,2000,2001)
 # rvs = [0]
 # ys = [43]
 # xs = [44]
-# ys = [-2]
-# xs = [-15]
+ys = [2]
+xs = [10]
 
 if False: # Example code to test the forward model
-    nonlin_paras = [0,-2,-15] # rv (km/s), y (pix), x (pix)
+    nonlin_paras = [0,2,10] # rv (km/s), y (pix), x (pix)
     # d is the data vector a the specified location
     # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
     # s is the vector of uncertainties corresponding to d
@@ -129,16 +137,17 @@ out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
 N_linpara = (out.shape[-1]-2)//2
 print(out.shape)
 
-print("plotting")
-plt.figure()
-plt.plot(rvs,np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))
-plt.ylabel("RV posterior")
-plt.xlabel("RV (km/s)")
-plt.title(rvs[np.nanargmax(np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))])
-plt.show()
+# print("plotting")
+# plt.figure()
+# plt.plot(rvs,np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))
+# plt.ylabel("RV posterior")
+# plt.xlabel("RV (km/s)")
+# plt.title(rvs[np.nanargmax(np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))])
+# plt.show()
 
 plt.figure()
 plt.plot(rvs,out[:,0,0,3]/out[:,0,0,3+N_linpara])
+plt.axvline(x=0)
 plt.ylabel("SNR")
 plt.xlabel("RV (km/s)")
 plt.show()
