@@ -29,17 +29,17 @@ def check1():
     model_wvs = arr[:, 0] / 1e4
     model_spec = 10 ** (arr[:, 1] - 8)
 
-    # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
-    # filename = "s210626_a033015_Kn5_020.fits"
-    dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
-    filename = "s210627_a048005_Kn5_020.fits"
+    dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
+    filename = "s210626_a032002_Kn5_020.fits"
+    # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
+    # filename = "s210627_a048005_Kn5_020.fits"
     print(filename)
     dataobj = OSIRIS(dir_name+filename) 
     nz,ny,nx = dataobj.data.shape
     dataobj.noise = np.ones((nz,ny,nx))
 
-    # sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
-    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/s210627_a003002_Kn3_020_calib.fits"
+    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
+    # sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/s210627_a003002_Kn3_020_calib.fits"
     dataobj.calibrate(sky_calib_file)
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
@@ -56,8 +56,8 @@ def check1():
 
     # tr_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     # SR3
-    # tr_file = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/spectra/s210626_a025"+filename[12:-13]+"_Kn5_020_spectrum.fits"
-    tr_file = "/scr3/jruffio/data/osiris_survey/targets/SR3/210627/second/reduced/spectra/s210627_a053002_Kn5_020_spectrum.fits"
+    tr_file = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/spectra/s210626_a025"+filename[12:-13]+"_Kn5_020_spectrum.fits"
+    # tr_file = "/scr3/jruffio/data/osiris_survey/targets/SR3/210627/second/reduced/spectra/s210627_a053002_Kn5_020_spectrum.fits"
 
     print("Reading transmission file", tr_file)
     with pyfits.open(tr_file) as hdulist:
@@ -75,7 +75,7 @@ def check1():
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":3,"nodes":5,"psfw":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+            "boxw":1,"nodes":5,"psfw":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
             "badpixfraction":0.75,"optimize_nodes":True}
     fm_func = hc_no_splinefm
     # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
@@ -86,8 +86,8 @@ def check1():
     #             "boxw":1,"psfw":1.2,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
     # fm_func = hc_hpffm
 
-    if False: # Example code to test the forward model
-        nonlin_paras = [0,2,10] # rv (km/s), y (pix), x (pix)
+    if True: # Example code to test the forward model
+        nonlin_paras = [0,0,10] # rv (km/s), y (pix), x (pix)
         # d is the data vector a the specified location
         # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
         # s is the vector of uncertainties corresponding to d
@@ -115,8 +115,20 @@ def check1():
             print(k)
             plt.plot(M[:,k+1]/np.nanmax(M[:,k+1]),label="starlight model {0}".format(k+1))
         plt.legend()
+
+        paras_H0 = lsq_linear(M[:,1::], d).x
+        m_H0 = np.dot(M[:,1::] , paras_H0)
+        r_H0 = d  - m_H0
+        r = d - m
+
+        plt.figure()
+        plt.plot(np.cumsum((r) ** 2),label="Residuals")
+        plt.plot(np.cumsum((r_H0) ** 2),label="Residuals H0")
+        plt.plot(np.cumsum((r_H0) ** 2-(r) ** 2),label="Residuals H0 - H1")
+        plt.legend()
         plt.show()
         plt.close('all')
+
     else:
         rvs = [0]
         ys = np.arange(-30, 30)
