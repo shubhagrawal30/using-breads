@@ -36,11 +36,16 @@ def check1():
     print(filename)
     dataobj = OSIRIS(dir_name+filename) 
     nz,ny,nx = dataobj.data.shape
+    # dataobj.noise = np.sqrt(np.abs(dataobj.data))
+    # dataobj.set_noise()
+    # dataobj.noise = dataobj.noise * dataobj.noise
     dataobj.noise = np.ones((nz,ny,nx))
 
     sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
     # sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/s210627_a003002_Kn3_020_calib.fits"
     dataobj.calibrate(sky_calib_file)
+
+    dataobj.trim_data(20)
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     print("Reading spectrum file", spec_file)
@@ -76,7 +81,7 @@ def check1():
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
             "boxw":1,"nodes":5,"psfw":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-            "badpixfraction":0.75,"optimize_nodes":True}
+            "badpixfraction":0.75,"optimize_nodes":False}
     fm_func = hc_no_splinefm
     # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
     #         "boxw":1,"nodes":5,"psfw":1.2,"badpixfraction":0.75}
@@ -87,7 +92,8 @@ def check1():
     # fm_func = hc_hpffm
 
     if True: # Example code to test the forward model
-        nonlin_paras = [0,0,10] # rv (km/s), y (pix), x (pix)
+        nonlin_paras = [0,-25,8] # rv (km/s), y (pix), x (pix)
+        # nonlin_paras = [0,0,0] # rv (km/s), y (pix), x (pix)
         # d is the data vector a the specified location
         # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
         # s is the vector of uncertainties corresponding to d
@@ -124,7 +130,7 @@ def check1():
         plt.figure()
         plt.plot(np.cumsum((r) ** 2),label="Residuals")
         plt.plot(np.cumsum((r_H0) ** 2),label="Residuals H0")
-        plt.plot(np.cumsum((r_H0) ** 2-(r) ** 2),label="Residuals H0 - H1")
+        plt.plot(np.cumsum((r_H0) ** 2 - (r) ** 2),label="Residuals H0 - H1")
         plt.legend()
         plt.show()
         plt.close('all')

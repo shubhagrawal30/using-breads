@@ -23,7 +23,8 @@ from breads.fm.hc_no_splinefm import hc_no_splinefm
 
 numthreads = 8
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
 
 print("making subdirectories")
 Path(dir_name+"planets/").mkdir(parents=True, exist_ok=True)
@@ -37,7 +38,7 @@ model_spec = 10 ** (arr[:, 1] - 8)
 
 # filename = "s210626_a032002_Kn5_020.fits"
 # filename = "s210627_a046004_Kn5_020.fits"
-filename = "s210627_a048005_Kn5_020.fits"
+filename = "s210626_a039010_Kn5_020.fits"
 
 print(filename)
 dataobj = OSIRIS(dir_name+filename) 
@@ -92,15 +93,15 @@ fm_func = hc_no_splinefm
 # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
 #             "boxw":1,"psfw":1.2,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
 # fm_func = hc_hpffm
-rvs = np.linspace(-2000,2000,2001)
+rvs = np.linspace(-4000,4000,2001)
 # rvs = [0]
 # ys = [43]
 # xs = [44]
-ys = [2]
-xs = [10]
+ys = [-2]
+xs = [-5]
 
 if False: # Example code to test the forward model
-    nonlin_paras = [0,2,10] # rv (km/s), y (pix), x (pix)
+    nonlin_paras = [0,2,-3] # rv (km/s), y (pix), x (pix)
     # d is the data vector a the specified location
     # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
     # s is the vector of uncertainties corresponding to d
@@ -137,13 +138,13 @@ out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
 N_linpara = (out.shape[-1]-2)//2
 print(out.shape)
 
-# print("plotting")
-# plt.figure()
-# plt.plot(rvs,np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))
-# plt.ylabel("RV posterior")
-# plt.xlabel("RV (km/s)")
-# plt.title(rvs[np.nanargmax(np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))])
-# plt.show()
+print("plotting")
+plt.figure()
+plt.plot(rvs,np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))
+plt.ylabel("RV posterior")
+plt.xlabel("RV (km/s)")
+plt.title(rvs[np.nanargmax(np.exp(out[:,0,0,0]-np.max(out[:,0,0,0])))])
+plt.show()
 
 plt.figure()
 plt.plot(rvs,out[:,0,0,3]/out[:,0,0,3+N_linpara])
