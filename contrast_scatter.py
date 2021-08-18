@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 star = "HD148352"
-fol = "OLD3"
+fol = "TP"
 target = f"{fol}_{star}"
 
 throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210626/reduced/throughput/{fol}/"
@@ -27,6 +27,8 @@ for fil in fr_files:
     snrs[fil] = out[0,:,:,3] / out[0,:,:,3+N_linpara]
     t_flux += out[0,:,:,3] / (out[0,:,:,3+N_linpara])**2
     t_err_rec += 1 / out[0,:,:,3+N_linpara] ** 2
+    # if len(snrs.values()) == 55:
+    #     break
 
 t_flux /= t_err_rec
 t_err = 1 / np.sqrt(t_err_rec)
@@ -34,11 +36,12 @@ t_err = 1 / np.sqrt(t_err_rec)
 noise_calib = np.nanstd(list(snrs.values()), axis=0)
 
 snr = t_flux / t_err / noise_calib
+print("frames combined: ", len(snrs.keys()))
 print(np.nanmax(t_flux))
 print(np.unravel_index(np.nanargmax(t_flux), t_flux.shape))
 xD, yD = np.unravel_index(np.nanargmax(snr), snr.shape)
 detection_snr = np.nanmax(snr)
-detection_flux = (t_flux)[xD, yD]
+detection_flux = t_flux[xD, yD]
 print(detection_snr, (xD, yD), detection_flux)
 # exit()
 
@@ -84,15 +87,18 @@ distances = []
 values = []
 nx, ny = calibrated_err_combined.shape
 xS, yS = nx / 2, ny / 2
-for x in range(nx // 2, nx):
+for x in range(nx):
     for y in range(ny):
         distances += [np.sqrt((y - yS) ** 2 + (x - xS) ** 2) * 20]
         values += [calibrated_err_combined[x, y]]
 
 plt.figure()
-plt.scatter(distances, threshold * np.array(values), alpha = 0.2)
-plt.scatter(distances, detection_snr * np.array(values), alpha = 0.2)
-plt.plot(np.sqrt((yD - yS) ** 2 + (xD - xS) ** 2) * 20, detection_flux, 'rX')
+plt.scatter(distances, threshold * np.array(values), alpha = 0.2, label="snr 5")
+# plt.scatter(distances, detection_snr * np.array(values), alpha = 0.2, label=f"detection snr {detection_snr}")
+plt.plot(np.sqrt((yD - yS) ** 2 + (xD - xS) ** 2) * 20, detection_flux / (t_flux/flux_ratio)[xD, yD], 'rX', label="detection")
+plt.title(f"{target}")
+plt.legend()
+plt.grid()
 plt.show()
 
 
