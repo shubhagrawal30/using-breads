@@ -3,20 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-star = "HD148352"
-fol = "OLD"
+star = "SR3"
+fol = "TP"
 
-frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210626/reduced/planets/{fol}/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/planets/HPF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/planets/REF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/planets/REF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/planets/REF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/planets/REF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR4/210627/reduced/planets/NO/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/planets/REF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs8/210627/reduced/planets/REF/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/planets/NO/"
-# frames_dir = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/planets/NO/"
+frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210626/first/reduced/planets/{fol}/"
 target = f"{fol}_{star}"
 files = os.listdir(frames_dir)
 
