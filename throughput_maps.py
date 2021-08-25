@@ -165,7 +165,7 @@ for filename in files[:]:
     plt.imshow(flux/noise,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("SNR")
-    plt.savefig(dir_name+subdirectory+filename[:-5]+"_snr.png")
+    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
     plt.figure()
     plt.imshow(flux,origin="lower")
     cbar = plt.colorbar()
