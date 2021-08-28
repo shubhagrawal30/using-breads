@@ -33,7 +33,7 @@ distances = {}
 max_r = np.inf
 
 plt.figure()
-for filename in files[:3]:
+for filename in files:
     if ".fits" not in filename:
         print("skipping ", filename)
         continue
@@ -105,10 +105,11 @@ hdulist.append(pyfits.PrimaryHDU(data=med_profile,
     header=pyfits.Header(cards={"TYPE": "psf", "DIR": dir_name}))) 
 hdulist.append(pyfits.PrimaryHDU(data=distance[:ind],
     header=pyfits.Header(cards={"TYPE": "distance", "DIR": dir_name})))
-hdulist.append(pyfits.PrimaryHDU(data=list(profiles.values()),
-    header=pyfits.Header(cards={"TYPE": "profiles", "DIR": dir_name})))
-hdulist.append(pyfits.PrimaryHDU(data=list(distances.values()),
-    header=pyfits.Header(cards={"TYPE": "distances", "DIR": dir_name})))
+for filename in profiles.keys():
+    hdulist.append(pyfits.PrimaryHDU(data=profiles[filename],
+        header=pyfits.Header(cards={"TYPE": "profiles", "FILE": filename})))
+    hdulist.append(pyfits.PrimaryHDU(data=distances[filename],
+        header=pyfits.Header(cards={"TYPE": "distances", "FILE": filename})))
                              
 try:
     hdulist.writeto(dir_name+"psf/psf.fits", overwrite=True)

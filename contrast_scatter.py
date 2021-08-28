@@ -1,20 +1,33 @@
+print("starting")
+import sys
+sys.path.append("/scr3/jruffio/shubh/breads/")
 import astropy.io.fits as pyfits
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from breads.instruments.OSIRIS import OSIRIS
+from pathlib import Path
 
-star = "HD148352"
-# star = "SR14"
+# star = "HD148352"
+# star = "SR3"
+star = "SR14"
+# star = "ROXs44"
 fol = "TP"
-date = "210626"
+# date = "210626"
 # date = "210626/first"
-# date = "210628"
+# date = "210627"
+date = "210628"
 target = f"{fol}_{star}"
 
 throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/throughput/{fol}/"
 frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/planets/{fol}/"
+psf_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/"
 fr_files = os.listdir(frames_dir)
 th_files = os.listdir(throughput_dir)
+psf_files = os.listdir(psf_dir)
+
+print("making subdirectories")
+Path(psf_dir+"psf/").mkdir(parents=True, exist_ok=True)
 
 snrs = {}
 to_flux = 0
@@ -49,10 +62,10 @@ detection_flux = to_flux[xD, yD]
 print(detection_snr, (xD, yD), detection_flux)
 # exit()
 
-plt.figure()
-plt.imshow(noise_calib, origin="lower")
-cbar = plt.colorbar()
-cbar.set_label("noise calib")
+# plt.figure()
+# plt.imshow(noise_calib, origin="lower")
+# cbar = plt.colorbar()
+# cbar.set_label("noise calib")
 
 flux_ratio = 1e-2
 threshold = 5
@@ -84,15 +97,15 @@ calibrated_err_combined = t_err * noise_calib / throughput
 
 print("frames combined: ", len(fluxs.keys()))
 
-plt.figure()
-plt.imshow(throughput, origin="lower")
-cbar = plt.colorbar()
-cbar.set_label("throughput")
+# plt.figure()
+# plt.imshow(throughput, origin="lower")
+# cbar = plt.colorbar()
+# cbar.set_label("throughput")
 
-plt.figure()
-plt.imshow(calibrated_err_combined, origin="lower")
-cbar = plt.colorbar()
-cbar.set_label("noise")
+# plt.figure()
+# plt.imshow(calibrated_err_combined, origin="lower")
+# cbar = plt.colorbar()
+# cbar.set_label("noise")
 
 
 distances = []
@@ -104,25 +117,69 @@ for x in range(nx):
         distances += [np.sqrt((y - yS) ** 2 + (x - xS) ** 2) * 20]
         values += [calibrated_err_combined[x, y]]
 
+# with pyfits.open(psf_dir + "psf.fits") as hdulist:
+#     profile = hdulist[0].data
+#     psf_dist = hdulist[1].data
+
+psf_dist = []
+psf_profile = []
+for fil in psf_files:
+    if ".fits" not in fil:
+        print("psf skipping", fil)
+        continue
+    print("psf DOING", fil)
+    data = np.nanmedian(OSIRIS(psf_dir + fil).data, axis=0)
+    with pyfits.open(psf_dir+"spectra/"+fil[:-5]+"_spectrum.fits") as hdulist:
+        mu_x = hdulist[3].data
+        mu_y = hdulist[4].data
+    xS, yS = np.nanmedian(mu_x), np.nanmedian(mu_y)    
+    nx, ny = data.shape
+    for x in range(nx):
+        for y in range(ny):
+            psf_dist += [np.sqrt((y - yS) ** 2 + (x - xS) ** 2) * 20]
+            psf_profile += [data[x, y]]
+
+distances = np.array(distances)
+
 plt.figure()
-plt.scatter(distances, threshold * np.array(values), alpha = 0.2, label="snr 5")
-plt.scatter(distances, detection_snr * np.array(values), alpha = 0.2, label=f"detection snr {detection_snr}")
+plt.scatter(psf_dist, np.array(psf_profile) / np.nanmax(psf_profile), marker=",", color="black", label="scaled PSF profile", alpha = 0.01)
+plt.scatter(distances, threshold * np.array(values), marker=",", alpha = 0.2, label="snr 5")
+plt.scatter(distances, detection_snr * np.array(values), marker=",", alpha = 0.2, label=f"detection snr {detection_snr}")
 plt.plot(np.sqrt((yD - yS) ** 2 + (xD - xS) ** 2) * 20, detection_flux / (t_flux/flux_ratio)[xD, yD], 'rX', label="detection")
+# plt.plot(psf_dist, profile / np.nanmean(profile) * np.nanmean(threshold * np.array(values)), "black", label="scaled PSF profile")
 plt.title(f"{target}")
+plt.xlim([np.nanmin(distances[distances > 0]) * 0.8, np.nanmax(distances) / 0.8])
 plt.xscale("log")
 plt.yscale("log")
 plt.legend()
 plt.grid()
+plt.savefig(psf_dir+"psf/scatter.png")
+plt.savefig(f"./plots/scatter_{target}.png")
 plt.show()
 
+hdulist = pyfits.HDUList()
+hdulist.append(pyfits.PrimaryHDU(data=calibrated_err_combined,
+    header=pyfits.Header(cards={"TYPE": "noise", "DIR": frames_dir})))
+hdulist.append(pyfits.PrimaryHDU(data=throughput,
+    header=pyfits.Header(cards={"TYPE": "throughput", "DIR": frames_dir})))
+hdulist.append(pyfits.PrimaryHDU(data=noise_calib,
+    header=pyfits.Header(cards={"TYPE": "noise_calib", "DIR": frames_dir})))
+hdulist.append(pyfits.PrimaryHDU(data=snr,
+    header=pyfits.Header(cards={"TYPE": "snr", "DIR": frames_dir})))
+hdulist.append(pyfits.PrimaryHDU(data=np.vstack((psf_dist, psf_profile)),
+    header=pyfits.Header(cards={"TYPE": "dist_psf", "DIR": frames_dir})))
+hdulist.append(pyfits.PrimaryHDU(data=np.vstack((distances, values)),
+    header=pyfits.Header(cards={"TYPE": "dist_noise", "DIR": frames_dir})))
 
-
-# hdulist = pyfits.HDUList()
-# hdulist.append(pyfits.PrimaryHDU(data=calibrated_err_combined,
-#     header=pyfits.Header(cards={"TYPE": "noise", "DIR": frames_dir})))
                              
-# try:
-#     hdulist.writeto(f"./plots/combined_{target}.fits", overwrite=True)
-# except TypeError:
-#     hdulist.writeto(f"./plots/combined_{target}.fits", clobber=True)
-# hdulist.close()
+try:
+    hdulist.writeto(psf_dir+"psf/scatter.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(psf_dir+"psf/scatter.fits", clobber=True)
+hdulist.close()
+
+try:
+    hdulist.writeto(f"./plots/scatter_{target}.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(f"./plots/scatter_{target}.fits", clobber=True)
+hdulist.close()
