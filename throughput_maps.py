@@ -32,13 +32,13 @@ from breads.fm.hc_no_splinefm import hc_no_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/TP/"
+subdirectory = "throughput/TP1/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
@@ -50,12 +50,12 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210627/first/reduced/spectra/"
+tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/spectra/"
 tr_files = os.listdir(tr_dir)
 tr_counter = 0
 tr_total = len(tr_files)
 
-sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/s210627_a003002_Kn3_020_calib.fits"
+sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
 
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
