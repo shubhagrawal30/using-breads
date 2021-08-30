@@ -8,15 +8,21 @@ import os
 from breads.instruments.OSIRIS import OSIRIS
 from pathlib import Path
 
-star = "HD148352"
+# star = "HD148352"
 # star = "SR3"
+# star = "SR4"
 # star = "SR14"
 # star = "ROXs44"
-fol = "TP1"
-date = "210626"
+# star = "ROXs8"
+# star = "ROXs4"
+# star = "ROXs43B"
+# star = "ROXs35A"
+star = "SR9"
+fol = "TP"
+# date = "210626"
 # date = "210626/first"
 # date = "210627"
-# date = "210628"
+date = "210628"
 target = f"{fol}_{star}"
 
 throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/throughput/{fol}/"
@@ -97,12 +103,10 @@ calibrated_err_combined = t_err * noise_calib / throughput
 
 print("frames combined: ", len(fluxs.keys()))
 
-plt.figure()
-plt.imshow(throughput, origin="lower")
-cbar = plt.colorbar()
-cbar.set_label("throughput")
-plt.show()
-exit()
+# plt.figure()
+# plt.imshow(throughput, origin="lower")
+# cbar = plt.colorbar()
+# cbar.set_label("throughput")
 
 # plt.figure()
 # plt.imshow(calibrated_err_combined, origin="lower")
