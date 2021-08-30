@@ -23,6 +23,8 @@ def line_from_scatter(xvals, yvals, num, equal_bins=False, log_space=True):
                 xs += [xvals[ind]]
                 ys += [yvals[ind]]  
                 ind += 1
+            if len(xs) == 0:
+                continue
             rxs += [np.nanmean(xs)]
             rys += [np.nanmean(ys)]
             xerrs += [np.nanstd(xs)]
@@ -40,15 +42,16 @@ def line_from_scatter(xvals, yvals, num, equal_bins=False, log_space=True):
         return rxs, rys, xerrs, yerrs
 
 
-targets = ["HD148352", "SR3", "SR14", "ROXs44", "ROXs43B", "SR9", "SR4", "ROXs8", "ROXs35A"]
-Kmags = [6.511, 6.504, 8.878, 7.61, 7.09, 7.207, 7.518, 6.227, 8.531]
-spec_types = ["F2V", "A0", "G5", "K3e", "K3e", "K5e", "K0:Ve", "K0", "K1IV"]
+targets = ["HD148352", "SR3", "SR14", "ROXs44", "ROXs43B", "SR9", "SR4", "ROXs8", "ROXs35A", "SR21A"]
+Kmags = [6.511, 6.504, 8.878, 7.61, 7.09, 7.207, 7.518, 6.227, 8.531, 6.719]
+spec_types = ["F2V", "A0", "G5", "K3e", "K3e", "K5e", "K0:Ve", "K0", "K1IV", "G1"]
 threshold_snr = 5
 
-for target, Kmag, spec_type in zip(targets[:-1], Kmags[:-1], spec_types[:-1]):
+for target, Kmag, spec_type in zip(targets, Kmags, spec_types):
+    print(target)
     targetf = f"TP_{target}"
     label = f"{target}: {Kmag}, {spec_type}"
-    with pyfits.open(f"./plots/scatter_{targetf}.fits") as hdulist:
+    with pyfits.open(f"./plots/scatter/scatter_{targetf}.fits") as hdulist:
         calibrated_err_combined, throughput = hdulist[0].data, hdulist[1].data
     distances = []
     noise = []
@@ -65,49 +68,29 @@ for target, Kmag, spec_type in zip(targets[:-1], Kmags[:-1], spec_types[:-1]):
     plt.figure(2)
     plt.scatter(distances, tp, label=label, alpha=0.1)
     plt.figure(3)
-    rxs, rys, xerrs, yerrs = line_from_scatter(distances, noise, 500, False)
-    plt.errorbar(rxs, rys, yerr=yerrs, xerr=xerrs, label=label, alpha=0.8, ls='none')
+    rxs, rys, xerrs, yerrs = line_from_scatter(distances, noise, 100, False)
+    plt.errorbar(rxs, rys, yerr=yerrs, xerr=xerrs, label=label, alpha=0.6, ls='none')
     plt.figure(4)
-    rxs, rys, xerrs, yerrs = line_from_scatter(distances, noise, 500, True)
-    plt.errorbar(rxs, rys, yerr=yerrs, xerr=xerrs, label=label, alpha=0.8, ls='none')
+    rxs, rys, xerrs, yerrs = line_from_scatter(distances, noise, 100, True)
+    plt.errorbar(rxs, rys, yerr=yerrs, xerr=xerrs, label=label, alpha=0.6, ls='dotted')
 
-plt.figure(1)
-plt.legend(bbox_to_anchor=(1.05, 1))
-plt.xscale('log')
-plt.yscale('log')
-plt.xlabel("separation in mas")
-plt.ylabel("flux ratio")
-plt.title("contrast curves")
-plt.grid()
-plt.tight_layout()
-
-plt.figure(2)
-plt.legend(bbox_to_anchor=(1.05, 1))
-plt.xlabel("separation in mas")
-plt.ylabel("recovered / injected flux")
-plt.title("throughputs")
-plt.grid()
-plt.tight_layout()
-
-plt.figure(3)
-plt.legend(bbox_to_anchor=(1.05, 1))
-plt.xscale('log')
-plt.yscale('log')
-plt.xlabel("separation in mas")
-plt.ylabel("flux ratio")
-plt.title("contrast curves")
-plt.grid()
-plt.tight_layout()
-
-plt.figure(4)
-plt.legend(bbox_to_anchor=(1.05, 1))
-plt.xscale('log')
-plt.yscale('log')
-plt.xlabel("separation in mas")
-plt.ylabel("flux ratio")
-plt.title("contrast curves")
-plt.grid()
-plt.tight_layout()
+for ind in [1, 2, 3, 4]:
+    print("plotting", ind)
+    plt.figure(ind)
+    plt.legend(loc='upper center', bbox_to_anchor=(-0.14,-0.32,1.16,0.2), ncol=5, mode='expand', fontsize='x-small')
+    plt.xlabel("separation in mas")
+    if ind == 2:
+        plt.ylabel("recovered / injected flux")
+        plt.title("throughputs")
+    else:
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.ylabel("flux ratio")
+        plt.ylim([1e-4, 1e-2])
+        plt.title(f"contrast curves (SNR {threshold_snr})")
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(f"./plots/mag_con_tp/{ind}.png")
 
 plt.show()
 

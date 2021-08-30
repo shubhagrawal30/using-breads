@@ -8,21 +8,26 @@ import os
 from breads.instruments.OSIRIS import OSIRIS
 from pathlib import Path
 
+# date = "210626"
 # star = "HD148352"
+# star = "SR21A"
+
+# date = "210626/first"
 # star = "SR3"
-# star = "SR4"
-# star = "SR14"
+
+date = "210627"
+star = "SR4"
 # star = "ROXs44"
 # star = "ROXs8"
+
+# date = "210628"
+# star = "ROXs35A"
+# star = "SR14"
 # star = "ROXs4"
 # star = "ROXs43B"
-# star = "ROXs35A"
-star = "SR9"
+# star = "SR9"
+
 fol = "TP"
-# date = "210626"
-# date = "210626/first"
-# date = "210627"
-date = "210628"
 target = f"{fol}_{star}"
 
 throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/throughput/{fol}/"
@@ -103,6 +108,10 @@ calibrated_err_combined = t_err * noise_calib / throughput
 
 print("frames combined: ", len(fluxs.keys()))
 
+assert(len(fluxs.keys()) == len(snrs.values())), "frames combined not same size"
+print("fine")
+exit()
+
 # plt.figure()
 # plt.imshow(throughput, origin="lower")
 # cbar = plt.colorbar()
@@ -160,7 +169,7 @@ plt.yscale("log")
 plt.legend()
 plt.grid()
 plt.savefig(psf_dir+"psf/scatter.png")
-plt.savefig(f"./plots/scatter_{target}.png")
+plt.savefig(f"./plots/scatter/scatter_{target}.png")
 plt.show()
 
 hdulist = pyfits.HDUList()
@@ -185,7 +194,7 @@ except TypeError:
 hdulist.close()
 
 try:
-    hdulist.writeto(f"./plots/scatter_{target}.fits", overwrite=True)
+    hdulist.writeto(f"./plots/scatter/scatter_{target}.fits", overwrite=True)
 except TypeError:
-    hdulist.writeto(f"./plots/scatter_{target}.fits", clobber=True)
+    hdulist.writeto(f"./plots/scatter/scatter_{target}.fits", clobber=True)
 hdulist.close()
