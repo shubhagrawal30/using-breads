@@ -27,8 +27,8 @@ from breads.fm.hc_hpffm import hc_hpffm
 numthreads = 8
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/"
@@ -53,15 +53,15 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/second/reduced/spectra/"
-# tr_dir = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/reduced/spectra/"
+# tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/second/reduced/spectra/"
+tr_dir = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/reduced/spectra/"
 tr_files = os.listdir(tr_dir)
 if "plots" in tr_files:
     tr_files.remove("plots")
 tr_counter = 0
 tr_total = len(tr_files)
 
-sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
+sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210628_a002002_Kn3_020_calib.fits"
 
 for filename in files[:]:
     try:

@@ -15,15 +15,15 @@ from pathlib import Path
 # date = "210626/first"
 # star = "SR3"
 
-date = "210627"
-star = "SR4"
+# date = "210627"
+# star = "SR4"
 # star = "ROXs44"
 # star = "ROXs8"
-
-# date = "210628"
-# star = "ROXs35A"
-# star = "SR14"
 # star = "ROXs4"
+
+date = "210628"
+star = "ROXs35A"
+# star = "SR14"
 # star = "ROXs43B"
 # star = "SR9"
 
@@ -109,8 +109,6 @@ calibrated_err_combined = t_err * noise_calib / throughput
 print("frames combined: ", len(fluxs.keys()))
 
 assert(len(fluxs.keys()) == len(snrs.values())), "frames combined not same size"
-print("fine")
-exit()
 
 # plt.figure()
 # plt.imshow(throughput, origin="lower")
