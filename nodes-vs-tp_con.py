@@ -15,6 +15,8 @@ from itertools import repeat
 from multiprocessing.pool import ThreadPool
 from concurrent.futures import ProcessPoolExecutor as Pool
 
+import arguments
+
 numthreads = 16
 
 print("Importing mkl")
@@ -34,11 +36,11 @@ from breads.injection import inject_planet, read_planet_info
 
 # star = "SR4"
 # star = "ROXs44"
-star = "HD148352"
+# star = "HD148352"
+star = "ROXs35A"
 fol = "TP"
-date = "210626"
 target = f"{fol}_{star}"
-dir_name = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/"
+dir_name = arguments.dir_name[star]
 files = os.listdir(dir_name)
 
 subdirectory = f"nodes/{fol}/"
@@ -53,14 +55,14 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/spectra/"
+tr_dir = arguments.tr_dir[star]
 tr_files = os.listdir(tr_dir)
 if "plots" in tr_files:
     tr_files.remove("plots")
 tr_counter = 0
 tr_total = len(tr_files)
 
-sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
+sky_calib_file = arguments.sky_calib_file[star]
 
 def one_location(args):
     dataobj, location, planet_f, spec_file, transmission, flux_ratio, dat, filename, fm_func, fm_paras = args
