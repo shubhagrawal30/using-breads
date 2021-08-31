@@ -71,14 +71,32 @@ def one_location(args):
         print("FAILED", filename, location)
         return np.nan, np.nan, np.nan, np.nan
 
+def get_planetf_temp(args):
+    dataobj, temp = args 
+    strtemp = str(temp)
+    if np.isclose(temp, int(temp)):
+        strtemp = strtemp[:strtemp.index('.')]
+    print(temp, strtemp)
+    planet_btsettl = f"/scr3/jruffio/models/BT-Settl/BT-Settl_M-0.0_a+0.0/lte0{strtemp}-5.0-0.0a+0.0.BT-Settl.spec.7"
+    arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
+                    converters={1: lambda x: float(x.decode("utf-8").replace('D', 'e'))})
+    model_wvs = arr[:, 0] / 1e4
+    model_spec = 10 ** (arr[:, 1] - 8)
+    minwv,maxwv= np.nanmin(dataobj.wavelengths),np.nanmax(dataobj.wavelengths)
+    crop_btsettl = np.where((model_wvs > minwv - 0.2) * (model_wvs < maxwv + 0.2))
+    model_wvs = model_wvs[crop_btsettl]
+    model_spec = model_spec[crop_btsettl]
+    model_broadspec = dataobj.broaden(model_wvs,model_spec)
+    return temp, interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
+
 sep = 100
 num_angles = 4
 flux_ratio = 1e-2
 angles = np.linspace(0, 2*np.pi, num_angles+1)[:-1]
 # available temps : [10.0, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 
 # 15.5, 16.0, 16.5, 17.0, 17.5, 18.0, 18.5, 19.0, 19.5, 20.0, 20.5, 21.0, 22.0, 28.0, 30.0, 70.0]
-temperatures = np.arange(10, 21.5, 0.5)
-temperatures = np.array([10., 15., 20.])
+temperatures = np.arange(10, 20.5, 0.5)
+# temperatures = np.array([10., 15., 20.])
 rvs = np.array([0])
 ys = sep / 20 * np.cos(angles)
 xs = sep / 20 * np.sin(angles)
@@ -86,7 +104,7 @@ injected_temp = 18.0
 
 print("Reading planet files")
 try:
-    if False:
+    if True:
         print("FORCE REDO")
         raise Exception
     planetfs = np.load('./plots/temp_recover/planetfs.npy', allow_pickle=True).item()
@@ -98,22 +116,11 @@ except:
             continue
         dataobj = OSIRIS(dir_name+filename)
         break
-    for temp in temperatures:
-        strtemp = str(temp)
-        if np.isclose(temp, int(temp)):
-            strtemp = strtemp[:strtemp.index('.')]
-        print(temp, strtemp)
-        planet_btsettl = f"/scr3/jruffio/models/BT-Settl/BT-Settl_M-0.0_a+0.0/lte0{strtemp}-5.0-0.0a+0.0.BT-Settl.spec.7"
-        arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
-                        converters={1: lambda x: float(x.decode("utf-8").replace('D', 'e'))})
-        model_wvs = arr[:, 0] / 1e4
-        model_spec = 10 ** (arr[:, 1] - 8)
-        minwv,maxwv= np.nanmin(dataobj.wavelengths),np.nanmax(dataobj.wavelengths)
-        crop_btsettl = np.where((model_wvs > minwv - 0.2) * (model_wvs < maxwv + 0.2))
-        model_wvs = model_wvs[crop_btsettl]
-        model_spec = model_spec[crop_btsettl]
-        model_broadspec = dataobj.broaden(model_wvs,model_spec)
-        planetfs[temp] = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
+    args = zip(repeat(dataobj), temperatures)
+    with Pool() as tpool:
+        for temp, pf in tpool.map(get_planetf_temp, args):
+            print(temp)
+            planetfs[temp] = pf
     np.save('./plots/temp_recover/planetfs.npy', planetfs)
 
 b_flux, b_err_rec, t_flux, t_err_rec, bsnr = {}, {}, {}, {}, {}
