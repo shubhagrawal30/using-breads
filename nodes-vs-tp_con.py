@@ -154,7 +154,7 @@ for filename in files[:]:
                 print(num_node, bf, bn, f, n)
                 bflux += [bf]
                 bnoise += [bn]
-                flux += [f / flux_ratio]
+                flux += [f]
                 noise += [n]
         bflux, bnoise, flux, noise = np.array(bflux), np.array(bnoise), np.array(flux), np.array(noise) 
         b_flux[num_node] += bflux / (bnoise) ** 2
@@ -166,7 +166,7 @@ for filename in files[:]:
 tp, tp_err, noise_calib, noi, noi_err = [], [], {}, [], []
 for num_node in num_nodes:
     noise_calib[num_node] = np.nanstd(list(bsnr[num_node].values()), axis=0)
-    tpvals = (t_flux[num_node] - b_flux[num_node]) / t_err_rec[num_node]
+    tpvals = (t_flux[num_node] / t_err_rec[num_node] - b_flux[num_node] / b_err_rec[num_node]) / flux_ratio
     plt.figure(1)
     for val in tpvals:
         plt.plot(num_node, val, "bx")
