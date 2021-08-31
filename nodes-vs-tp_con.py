@@ -37,7 +37,9 @@ from breads.injection import inject_planet, read_planet_info
 # star = "SR4"
 # star = "ROXs44"
 # star = "HD148352"
-star = "ROXs35A"
+# star = "ROXs35A"
+star = str(sys.argv[1])
+print(star)
 fol = "TP"
 target = f"{fol}_{star}"
 dir_name = arguments.dir_name[star]

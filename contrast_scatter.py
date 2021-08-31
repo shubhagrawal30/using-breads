@@ -15,14 +15,14 @@ from pathlib import Path
 # date = "210626/first"
 # star = "SR3"
 
-# date = "210627"
+date = "210627"
 # star = "SR4"
 # star = "ROXs44"
 # star = "ROXs8"
-# star = "ROXs4"
+star = "ROXs4"
 
-date = "210628"
-star = "ROXs35A"
+# date = "210628"
+# star = "ROXs35A"
 # star = "SR14"
 # star = "ROXs43B"
 # star = "SR9"

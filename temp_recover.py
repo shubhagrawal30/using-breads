@@ -84,7 +84,7 @@ xs = sep / 20 * np.sin(angles)
 
 print("Reading planet files")
 try:
-
+    pass
 except:    
     for filename in files[:]:
         if ".fits" not in filename:

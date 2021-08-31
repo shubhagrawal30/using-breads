@@ -42,10 +42,10 @@ def line_from_scatter(xvals, yvals, num, equal_bins=False, log_space=True):
         return rxs, rys, xerrs, yerrs
 
 
-targets = ["HD148352", "SR3", "SR14", "ROXs44", "ROXs43B", "SR9", "SR4", "ROXs8", "ROXs35A", "SR21A"]
-Kmags = [6.511, 6.504, 8.878, 7.61, 7.09, 7.207, 7.518, 6.227, 8.531, 6.719]
-spec_types = ["F2V", "A0", "G5", "K3e", "K3e", "K5e", "K0:Ve", "K0", "K1IV", "G1"]
-Teffs = [6700, 4000, 5400, 4700, 4000, 3900, 4300, 5200, 4700, 4500]
+targets = ["HD148352", "SR3", "SR14", "ROXs44", "ROXs43B", "SR9", "SR4", "ROXs8", "ROXs35A", "SR21A", "ROXs4"]
+Kmags = [6.511, 6.504, 8.878, 7.61, 7.09, 7.207, 7.518, 6.227, 8.531, 6.719, 8.331]
+spec_types = ["F2V", "A0", "G5", "K3e", "K3e", "K5e", "K0:Ve", "K0", "K1IV", "G1", "K5.5"]
+Teffs = [6700, 4000, 5400, 4700, 4000, 3900, 4300, 5200, 4700, 4500, 4100]
 threshold_snr = 5
 
 # tp60, tp100_err, con60, con60_err = [], [], [], []
@@ -103,7 +103,7 @@ for ind in range(1, 11):
     print("plotting", ind)
     plt.figure(ind)
     if ind <= 6:
-        plt.legend(loc='upper center', bbox_to_anchor=(-0.14,-0.33,1.16,0.2), ncol=5, mode='expand', fontsize='x-small')
+        plt.legend(loc='upper center', bbox_to_anchor=(-0.1,-0.35,1.1,0.2), ncol=4, mode='expand', fontsize='x-small')
         plt.xlabel("separation in mas")
     elif ind <= 8:
         plt.legend()
