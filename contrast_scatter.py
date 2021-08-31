@@ -96,7 +96,7 @@ for fil in th_files:
         noise = hdulist[1].data
     fluxs[fil] = flux
     noises[fil] = noise
-    t_flux += flux / (noise) **2
+    t_flux += flux / (noise) ** 2
     t_err_rec += 1 / noise ** 2
 
 t_flux /= t_err_rec
