@@ -42,7 +42,9 @@ target = f"{fol}_{star}"
 dir_name = arguments.dir_name[star]
 files = os.listdir(dir_name)
 
-subdirectory = f"temp_recover/{fol}/"
+injected_temp = 18.0
+
+subdirectory = f"temp_recover/{fol}/{injected_temp}/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -100,7 +102,6 @@ temperatures = np.arange(10, 20.5, 0.5)
 rvs = np.array([0])
 ys = sep / 20 * np.cos(angles)
 xs = sep / 20 * np.sin(angles)
-injected_temp = 18.0
 
 print("Reading planet files")
 try:
@@ -218,21 +219,21 @@ plt.figure(1)
 plt.xlabel("temp / 100")
 plt.ylabel("SNR")
 plt.axvline(x=injected_temp, color="black", ls='dotted')
-plt.savefig(f"./plots/temp_recover/snr1_{target}.png")
+plt.savefig(f"./plots/temp_recover/{injected_temp}/snr1_{target}.png")
 plt.savefig(dir_name+subdirectory+f"snr1_{target}.png")
 
 plt.figure(2)
 plt.xlabel("temp / 100")
 plt.ylabel("throughput")
 plt.axvline(x=injected_temp, color="black", ls='dotted')
-plt.savefig(f"./plots/temp_recover/tp1_{target}.png")
+plt.savefig(f"./plots/temp_recover/{injected_temp}/tp1_{target}.png")
 plt.savefig(dir_name+subdirectory+f"tp1_{target}.png")
 
 plt.figure(3)
 plt.xlabel("temp / 100")
 plt.ylabel("noise")
 plt.axvline(x=injected_temp, color="black", ls='dotted')
-plt.savefig(f"./plots/temp_recover/noi1_{target}.png")
+plt.savefig(f"./plots/temp_recover/{injected_temp}/noi1_{target}.png")
 plt.savefig(dir_name+subdirectory+f"noi1_{target}.png")
 
 plt.figure(4)
@@ -240,7 +241,7 @@ plt.errorbar(temperatures, snr, yerr=snr_err)
 plt.xlabel("temp / 100")
 plt.ylabel("SNR")
 plt.axvline(x=injected_temp, color="black", ls='dotted')
-plt.savefig(f"./plots/temp_recover/snr2_{target}.png")
+plt.savefig(f"./plots/temp_recover/{injected_temp}/snr2_{target}.png")
 plt.savefig(dir_name+subdirectory+f"snr2_{target}.png")
 
 plt.figure(5)
@@ -248,7 +249,7 @@ plt.errorbar(temperatures, tp, yerr=tp_err)
 plt.xlabel("temp / 100")
 plt.ylabel("throughput")
 plt.axvline(x=injected_temp, color="black", ls='dotted')
-plt.savefig(f"./plots/temp_recover/tp2_{target}.png")
+plt.savefig(f"./plots/temp_recover/{injected_temp}/tp2_{target}.png")
 plt.savefig(dir_name+subdirectory+f"tp2_{target}.png")
 
 plt.figure(6)
@@ -256,7 +257,7 @@ plt.errorbar(temperatures, noi, yerr=noi_err)
 plt.xlabel("temp / 100")
 plt.ylabel("noise")
 plt.axvline(x=injected_temp, color="black", ls='dotted')
-plt.savefig(f"./plots/temp_recover/noi2_{target}.png")
+plt.savefig(f"./plots/temp_recover/{injected_temp}/noi2_{target}.png")
 plt.savefig(dir_name+subdirectory+f"noi2_{target}.png")
 
 hdulist = pyfits.HDUList()
@@ -297,9 +298,9 @@ try:
 except TypeError:
     hdulist.writeto(dir_name+subdirectory+f"temp_recover_{target}.fits", clobber=True)
 try:
-    hdulist.writeto(f"./plots/temp_recover/temp_recover_{target}.fits", overwrite=True)
+    hdulist.writeto(f"./plots/temp_recover/{injected_temp}/temp_recover_{target}.fits", overwrite=True)
 except TypeError:
-    hdulist.writeto(f"./plots/temp_recover/temp_recover_{target}.fits", clobber=True)
+    hdulist.writeto(f"./plots/temp_recover/{injected_temp}/temp_recover_{target}.fits", clobber=True)
 hdulist.close()
 
 plt.show()
