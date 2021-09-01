@@ -180,19 +180,27 @@ for num_node in num_nodes:
     noi_err += [np.nanstd(nvals)]
 
 plt.figure(1)
+plt.xlabel("number of nodes")
+plt.ylabel("throughput")
 plt.savefig(f"./plots/nodes-vs/nodes_tp1_{target}.png")
 plt.savefig(dir_name+subdirectory+f"nodes_tp1_{target}.png")
 
 plt.figure(2)
+plt.xlabel("number of nodes")
+plt.ylabel("noise")
 plt.savefig(f"./plots/nodes-vs/nodes_noi1_{target}.png")
 plt.savefig(dir_name+subdirectory+f"nodes_noi1_{target}.png")
 
 plt.figure(3)
+plt.xlabel("number of nodes")
+plt.ylabel("throughput")
 plt.errorbar(num_nodes, tp, yerr=tp_err)
 plt.savefig(f"./plots/nodes-vs/nodes_tp2_{target}.png")
 plt.savefig(dir_name+subdirectory+f"nodes_tp2_{target}.png")
 
 plt.figure(4)
+plt.xlabel("number of nodes")
+plt.ylabel("noise")
 plt.errorbar(num_nodes, noi, yerr=noi_err)
 plt.savefig(f"./plots/nodes-vs/nodes_noi2_{target}.png")
 plt.savefig(dir_name+subdirectory+f"nodes_noi2_{target}.png")

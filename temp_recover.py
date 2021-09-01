@@ -34,8 +34,8 @@ from breads.fm.hc_no_splinefm import hc_no_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 
-star = "SR4"
-# star = str(sys.argv[1])
+# star = "SR4"
+star = str(sys.argv[1])
 print(star)
 fol = "TP"
 target = f"{fol}_{star}"
@@ -90,7 +90,7 @@ def get_planetf_temp(args):
     return temp, interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
 sep = 100
-num_angles = 4
+num_angles = 16
 flux_ratio = 1e-2
 angles = np.linspace(0, 2*np.pi, num_angles+1)[:-1]
 # available temps : [10.0, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 
@@ -104,7 +104,7 @@ injected_temp = 18.0
 
 print("Reading planet files")
 try:
-    if True:
+    if False:
         print("FORCE REDO")
         raise Exception
     planetfs = np.load('./plots/temp_recover/planetfs.npy', allow_pickle=True).item()
@@ -119,7 +119,7 @@ except:
     args = zip(repeat(dataobj), temperatures)
     with Pool() as tpool:
         for temp, pf in tpool.map(get_planetf_temp, args):
-            print(temp)
+            print("computed", temp)
             planetfs[temp] = pf
     np.save('./plots/temp_recover/planetfs.npy', planetfs)
 
@@ -131,7 +131,7 @@ for temp in temperatures:
     t_err_rec[temp] = np.zeros_like(angles)
     bsnr[temp] = {}
 
-for filename in files[:4]:
+for filename in files:
     if ".fits" not in filename:
         print("SKIP", filename)
         continue
@@ -187,8 +187,9 @@ for filename in files[:4]:
         bsnr[temp][filename] = bflux / bnoise
         t_flux[temp] += flux / (noise) ** 2
         t_err_rec[temp] += 1 / noise ** 2
+    print("DONE", filename)
 
-snr, snr_err, noise_calib = [], [], {}
+snr, snr_err, tp, tp_err, noise_calib, noi, noi_err = [], [], [], [], {}, [], []
 for temp in temperatures:
     noise_calib[temp] = np.nanstd(list(bsnr[temp].values()), axis=0)
     rflux = (t_flux[temp] - b_flux[temp]) / t_err_rec[temp]
@@ -200,49 +201,105 @@ for temp in temperatures:
     snr += [np.nanmean(snr_vals)]
     snr_err += [np.nanstd(snr_vals)]
 
+    tpvals = (t_flux[temp] - b_flux[temp]) / t_err_rec[temp] / flux_ratio
+    plt.figure(2)
+    for val in tpvals:
+        plt.plot(temp, val, "bx")
+    tp += [np.nanmean(tpvals)]
+    tp_err += [np.nanstd(tpvals)]
+    nvals = 1 / np.sqrt(t_err_rec[temp]) * noise_calib[temp] / tpvals
+    plt.figure(3)
+    for val in nvals:
+        plt.plot(temp, val, "bx")
+    noi += [np.nanmean(nvals)]
+    noi_err += [np.nanstd(nvals)]
+
+plt.figure(1)
+plt.xlabel("temp / 100")
+plt.ylabel("SNR")
+plt.axvline(x=injected_temp, color="black", ls='dotted')
+plt.savefig(f"./plots/temp_recover/snr1_{target}.png")
+plt.savefig(dir_name+subdirectory+f"snr1_{target}.png")
+
+plt.figure(2)
+plt.xlabel("temp / 100")
+plt.ylabel("throughput")
+plt.axvline(x=injected_temp, color="black", ls='dotted')
+plt.savefig(f"./plots/temp_recover/tp1_{target}.png")
+plt.savefig(dir_name+subdirectory+f"tp1_{target}.png")
+
 plt.figure(3)
+plt.xlabel("temp / 100")
+plt.ylabel("noise")
+plt.axvline(x=injected_temp, color="black", ls='dotted')
+plt.savefig(f"./plots/temp_recover/noi1_{target}.png")
+plt.savefig(dir_name+subdirectory+f"noi1_{target}.png")
+
+plt.figure(4)
 plt.errorbar(temperatures, snr, yerr=snr_err)
+plt.xlabel("temp / 100")
+plt.ylabel("SNR")
+plt.axvline(x=injected_temp, color="black", ls='dotted')
+plt.savefig(f"./plots/temp_recover/snr2_{target}.png")
+plt.savefig(dir_name+subdirectory+f"snr2_{target}.png")
+
+plt.figure(5)
+plt.errorbar(temperatures, tp, yerr=tp_err)
+plt.xlabel("temp / 100")
+plt.ylabel("throughput")
+plt.axvline(x=injected_temp, color="black", ls='dotted')
+plt.savefig(f"./plots/temp_recover/tp2_{target}.png")
+plt.savefig(dir_name+subdirectory+f"tp2_{target}.png")
+
+plt.figure(6)
+plt.errorbar(temperatures, noi, yerr=noi_err)
+plt.xlabel("temp / 100")
+plt.ylabel("noise")
+plt.axvline(x=injected_temp, color="black", ls='dotted')
+plt.savefig(f"./plots/temp_recover/noi2_{target}.png")
+plt.savefig(dir_name+subdirectory+f"noi2_{target}.png")
+
+hdulist = pyfits.HDUList()
+hdulist.append(pyfits.PrimaryHDU(data=temperatures,
+    header=pyfits.Header(cards={"TYPE": "temperatures", "FILE": filename, "PLANET": injected_temp,\
+                                    "FLUX": spec_file, "TRANS": tr_file})))    
+for temp in temperatures:
+    hdulist.append(pyfits.PrimaryHDU(data=t_flux[temp],
+        header=pyfits.Header(cards={"TYPE": "t_flux", "TEMP": str(temp), "FILE": filename, "PLANET": str(injected_temp),\
+                                    "FLUX": spec_file, "TRANS": tr_file})))   
+    hdulist.append(pyfits.PrimaryHDU(data=t_err_rec[temp],
+        header=pyfits.Header(cards={"TYPE": "t_err_rec", "NODE": str(temp), "FILE": filename, "PLANET": str(injected_temp),\
+                                    "FLUX": spec_file, "TRANS": tr_file})))  
+    hdulist.append(pyfits.PrimaryHDU(data=b_flux[temp],
+        header=pyfits.Header(cards={"TYPE": "b_flux", "NODE": str(temp), "FILE": filename, "PLANET": str(injected_temp),\
+                                    "FLUX": spec_file, "TRANS": tr_file})))                          
+    hdulist.append(pyfits.PrimaryHDU(data=b_err_rec[temp],
+        header=pyfits.Header(cards={"TYPE": "b_err_rec", "NODE": str(temp), "FILE": filename, "PLANET": str(injected_temp),\
+                                    "FLUX": spec_file, "TRANS": tr_file})))  
+    hdulist.append(pyfits.PrimaryHDU(data=noise_calib[temp],
+        header=pyfits.Header(cards={"TYPE": "calib", "NODE": str(temp), "FILE": filename, "PLANET": str(injected_temp),\
+                                    "FLUX": spec_file, "TRANS": tr_file})))  
+    hdulist.append(pyfits.PrimaryHDU(data=list(bsnr[temp].values()),
+        header=pyfits.Header(cards={"TYPE": "bsnr", "NODE": str(temp), "FILE": filename, "PLANET": str(injected_temp),\
+                                    "FLUX": spec_file, "TRANS": tr_file})))
+hdulist.append(pyfits.PrimaryHDU(data=np.vstack((snr, snr_err)),
+    header=pyfits.Header(cards={"TYPE": "snr", "FILE": filename, "PLANET": injected_temp,\
+                                    "FLUX": spec_file, "TRANS": tr_file})))
+hdulist.append(pyfits.PrimaryHDU(data=np.vstack((tp, tp_err)),
+    header=pyfits.Header(cards={"TYPE": "tp", "FILE": filename, "PLANET": injected_temp,\
+                                    "FLUX": spec_file, "TRANS": tr_file})))    
+hdulist.append(pyfits.PrimaryHDU(data=np.vstack((noi, noi_err)),
+    header=pyfits.Header(cards={"TYPE": "noi", "FILE": filename, "PLANET": injected_temp,\
+                                    "FLUX": spec_file, "TRANS": tr_file})))    
+
+try:
+    hdulist.writeto(dir_name+subdirectory+f"temp_recover_{target}.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(dir_name+subdirectory+f"temp_recover_{target}.fits", clobber=True)
+try:
+    hdulist.writeto(f"./plots/temp_recover/temp_recover_{target}.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(f"./plots/temp_recover/temp_recover_{target}.fits", clobber=True)
+hdulist.close()
 
 plt.show()
-
-# hdulist = pyfits.HDUList()
-# hdulist.append(pyfits.PrimaryHDU(data=num_nodes,
-#     header=pyfits.Header(cards={"TYPE": "num_nodes", "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))    
-# for num_node in num_nodes:
-#     hdulist.append(pyfits.PrimaryHDU(data=t_flux[num_node],
-#         header=pyfits.Header(cards={"TYPE": "t_flux", "NODE": str(num_node), "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))   
-#     hdulist.append(pyfits.PrimaryHDU(data=t_err_rec[num_node],
-#         header=pyfits.Header(cards={"TYPE": "t_err_rec", "NODE": str(num_node), "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))  
-#     hdulist.append(pyfits.PrimaryHDU(data=b_flux[num_node],
-#         header=pyfits.Header(cards={"TYPE": "b_flux", "NODE": str(num_node), "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))                          
-#     hdulist.append(pyfits.PrimaryHDU(data=b_err_rec[num_node],
-#         header=pyfits.Header(cards={"TYPE": "b_err_rec", "NODE": str(num_node), "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))  
-#     hdulist.append(pyfits.PrimaryHDU(data=noise_calib[num_node],
-#         header=pyfits.Header(cards={"TYPE": "calib", "NODE": str(num_node), "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))  
-#     hdulist.append(pyfits.PrimaryHDU(data=list(bsnr[num_node].values()),
-#         header=pyfits.Header(cards={"TYPE": "bsnr", "NODE": str(num_node), "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))
-# hdulist.append(pyfits.PrimaryHDU(data=np.vstack((tp, tp_err)),
-#     header=pyfits.Header(cards={"TYPE": "tp", "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))    
-# hdulist.append(pyfits.PrimaryHDU(data=np.vstack((noi, noi_err)),
-#     header=pyfits.Header(cards={"TYPE": "noi", "FILE": filename, "PLANET": planet_btsettl,\
-#                                     "FLUX": spec_file, "TRANS": tr_file})))    
-
-# try:
-#     hdulist.writeto(dir_name+subdirectory+f"nodes_{target}.fits", overwrite=True)
-# except TypeError:
-#     hdulist.writeto(dir_name+subdirectory+f"nodes_{target}.fits", clobber=True)
-# try:
-#     hdulist.writeto(f"./plots/nodes-vs/nodes_{target}.fits", overwrite=True)
-# except TypeError:
-#     hdulist.writeto(f"./plots/nodes-vs/nodes_{target}.fits", clobber=True)
-# hdulist.close()
-
-# plt.show()
