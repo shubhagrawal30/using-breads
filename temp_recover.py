@@ -42,12 +42,14 @@ target = f"{fol}_{star}"
 dir_name = arguments.dir_name[star]
 files = os.listdir(dir_name)
 
-injected_temp = 18.0
+injected_temp = float(sys.argv[2])
+print("injection temperature", injected_temp)
 
 subdirectory = f"temp_recover/{fol}/{injected_temp}/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
+Path(f"./plots/temp_recover/{injected_temp}/").mkdir(parents=True, exist_ok=True)
 
 tr_dir = arguments.tr_dir[star]
 tr_files = os.listdir(tr_dir)
