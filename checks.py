@@ -1,5 +1,6 @@
 print("starting")
 import sys
+from matplotlib import colors
 sys.path.append("/scr3/jruffio/shubh/breads/")
 import numpy as np
 import matplotlib.pyplot as plt
@@ -151,17 +152,19 @@ def check1():
 
 def check2():
     
-    dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
-    filename = "s210627_a025004_Kn5_020.fits"
+    # dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
+    # filename = "s210627_a025004_Kn5_020.fits"
     # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
     # filename = "s210626_a033015_Kn5_020.fits"
+    dir_name = "/scr3/jruffio/shubh/test_odrp/arp_basicarp/"
+    filename = "s210626_a032002_Kn5_020.fits"
     print(filename)
     dataobj = OSIRIS(dir_name+filename) 
     nz,ny,nx = dataobj.data.shape
     dataobj.noise = np.ones((nz,ny,nx))
 
-    # sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
-    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/s210627_a003002_Kn3_020_calib.fits"
+    sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
+    # sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/s210627_a003002_Kn3_020_calib.fits"
     dataobj.calibrate(sky_calib_file)
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
@@ -179,19 +182,31 @@ def check2():
     # dataobj.set_reference_position((2, 2))
     print(dataobj.refpos)
 
+    plt.figure(2)
+    plt.title("arp_basicarp")
+    plt.xlabel("wavelengths")
+    plt.figure(1)
+    plt.ion()
+    plt.show()
+    plt.imshow(np.nanmedian(dataobj.data, axis=0), origin="lower")
+    color = ["red", "orange", "darkred", "darkgrey", "grey", "green", "darkgreen", "rosybrown", "maroon", "gold", "crimson", "aqua"]
+    c = 0
     while True:
         x = int(input("X:"))
         y = int(input("Y:"))
-        plt.figure()
-        plt.imshow(np.nanmedian(dataobj.data, axis=0), origin="lower")
-        plt.plot(x, y, "rX")
-        plt.figure()
-        plt.plot(dataobj.wavelengths[:, y, x], dataobj.data[:, y, x], label=f"{x}, {y}")
+        if x == -10:
+            break
+        plt.figure(1)
+        plt.plot(x, y, "X", color = color[c])
+        plt.figure(2)
+        plt.plot(dataobj.wavelengths[:, y, x], dataobj.data[:, y, x], label=f"{x}, {y}", color = color[c])
         plt.legend()
-        plt.show()
-        plt.close()
+        plt.draw()
+        plt.pause(0.05)
+        c += 1
+    plt.show()
 
 
 if __name__ == "__main__":
-    check1()
-    # check2()
+    # check1()
+    check2()

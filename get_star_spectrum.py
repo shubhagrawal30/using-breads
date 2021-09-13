@@ -12,7 +12,8 @@ try:
 except:
     pass
 
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
+dir_name = "/scr3/jruffio/shubh/test_odrp/orp_basicarp/"
 files = os.listdir(dir_name)
 
 print("making subdirectories")
