@@ -88,6 +88,8 @@ for filename in files[:]:
             star_spectrum = hdulist[2].data
             mu_x = hdulist[3].data
             mu_y = hdulist[4].data
+            sig_x = hdulist[5].data
+            sig_y = hdulist[6].data
 
         print("setting reference position")
         dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -126,8 +128,9 @@ for filename in files[:]:
         #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
         # fm_func = hc_splinefm
         fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-                "boxw":3,"nodes":5,"psfw":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+                "boxw":3,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)),
                 "badpixfraction":0.75,"optimize_nodes":True}
+        print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
         fm_func = hc_no_splinefm
         # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
         #             "boxw":3,"psfw":1.5,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}

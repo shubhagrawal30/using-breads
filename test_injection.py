@@ -33,20 +33,9 @@ from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 
 dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs8/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR4/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/NEW/"
-
+subdirectory = "throughput/TEST1/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -57,7 +46,7 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-# tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/spectra/"
+# tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/second/reduced/spectra/"
 tr_dir = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210626/reduced/spectra/"
 tr_files = os.listdir(tr_dir)
 if "plots" in tr_files:
@@ -69,24 +58,25 @@ sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/2106
 
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
-    try:
+    if 1:
+        dataobj.set_noise()
+        out_b = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
         dataobj.data = deepcopy(dat)
         inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
+        dataobj.set_noise()
         print("SNR time", location)
         out = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
         N_linpara = (out.shape[-1]-2)//2
-        return indices, out[0,0,0,3], out[0,0,0,3+N_linpara]
-    except Exception as e:
-        print(e)
-        print("FAILED", filename, location)
-        return indices, np.nan, np.nan
+        return indices, out[0,0,0,3] - out_b[0,0,0,3], out[0,0,0,3+N_linpara]
+    # except Exception as e:
+    #     print(e)
+    #     print("FAILED", filename, location)
+    #     return indices, np.nan, np.nan
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(-40, 40)
-    xs = np.arange(-20, 20)
-    # ys = np.arange(-5, 5)
-    # xs = np.arange(-5, 5)
+    ys = np.arange(0, 2)
+    xs = np.arange(0, 2)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -105,8 +95,7 @@ for filename in files[:]:
         star_spectrum = hdulist[2].data
         mu_x = hdulist[3].data
         mu_y = hdulist[4].data
-        sig_x = hdulist[5].data
-        sig_y = hdulist[6].data
+        sig_x, sigy = 1, 1
 
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -137,17 +126,10 @@ for filename in files[:]:
     model_broadspec = dataobj.broaden(model_wvs,model_spec)
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
-    # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-    #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
-    # fm_func = hc_splinefm
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":3,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)),
+            "boxw":3,"nodes":5,"psfw":(sig_x, sigy),
             "badpixfraction":0.75,"optimize_nodes":True}
-    print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
     fm_func = hc_no_splinefm
-    # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-    #             "boxw":3,"psfw":1.5,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
-    # fm_func = hc_hpffm
     flux_ratio = 1e-2
     
     print("setting noise")
@@ -168,12 +150,6 @@ for filename in files[:]:
             print(indices, f, n)
             j, i = indices
             flux[j, i], noise[j, i] = f, n
-
-
-    # print("parsing output")
-    # for i, x in enumerate(xs):
-    #     for j, y in enumerate(ys):
-    #         flux[j, i],noise[j, i] = outputs[i*len(ys)+j]
 
     plt.figure()
     plt.imshow(flux/noise,origin="lower")
