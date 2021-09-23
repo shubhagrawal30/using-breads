@@ -23,25 +23,16 @@ from breads.search_planet import search_planet
 from breads.fm.hc_splinefm import hc_splinefm
 from breads.fm.hc_no_splinefm import hc_no_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
+import arguments
 
-numthreads = 8
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/first/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR21A/210626/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs35A/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR14/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs43B/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR9/210628/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR4/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs44/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs8/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/ROXs4/210627/reduced/"
+numthreads = 16
+star = "HD148352"
+dir_name = arguments.dir_name[star]
+tr_dir = arguments.tr_dir[star]
+sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-# print(files.index("s210627_a049003_Kn5_020.fits"))
-# exit()
-
-subdirectory = "planets/TP/"
+subdirectory = "planets/09222021/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -53,15 +44,11 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-# tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/second/reduced/spectra/"
-tr_dir = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/reduced/spectra/"
 tr_files = os.listdir(tr_dir)
 if "plots" in tr_files:
     tr_files.remove("plots")
 tr_counter = 0
 tr_total = len(tr_files)
-
-sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/s210628_a002002_Kn3_020_calib.fits"
 
 for filename in files[:]:
     try:
@@ -79,8 +66,6 @@ for filename in files[:]:
         print("sky calibrating")
         dataobj.calibrate(sky_calib_file)
 
-        # plt.figure()
-        # plt.plot(dataobj.data[:, 37, 44])
 
         spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
         print("Reading spectrum file", spec_file)
@@ -127,7 +112,7 @@ for filename in files[:]:
         # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
         #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
         # fm_func = hc_splinefm
-        fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+        fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
                 "boxw":3,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)),
                 "badpixfraction":0.75,"optimize_nodes":True}
         print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))

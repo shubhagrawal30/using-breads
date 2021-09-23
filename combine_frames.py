@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-star = "SR3"
-fol = "TP"
+star = "HD148352"
+fol = "09222021"
 
-frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210626/first/reduced/planets/{fol}/"
+frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210626/reduced/planets/{fol}/"
 target = f"{fol}_{star}"
 files = os.listdir(frames_dir)
 
