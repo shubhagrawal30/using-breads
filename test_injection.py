@@ -39,7 +39,7 @@ tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/TEST3/"
+subdirectory = "throughput/TESTSS1/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -95,7 +95,7 @@ for filename in files[:]:
         star_spectrum = hdulist[2].data
         mu_x = hdulist[3].data
         mu_y = hdulist[4].data
-        sig_x, sig_y = 2, 2
+        sig_x, sig_y = 1, 1
 
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -126,7 +126,7 @@ for filename in files[:]:
     model_broadspec = dataobj.broaden(model_wvs,model_spec)
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
-    fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+    fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
             "boxw":3,"nodes":5,"psfw":(sig_x, sig_y),
             "badpixfraction":0.75,"optimize_nodes":True}
     fm_func = hc_no_splinefm
