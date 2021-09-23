@@ -31,11 +31,15 @@ from breads.fm.hc_splinefm import hc_splinefm
 from breads.fm.hc_no_splinefm import hc_no_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
+import arguments
 
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/HD148352/210626/reduced/"
+star = "SR3"
+dir_name = arguments.dir_name[star]
+tr_dir = arguments.tr_dir[star]
+sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/TEST1/"
+subdirectory = "throughput/TEST3/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -46,15 +50,11 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
 
-# tr_dir = "/scr3/jruffio/data/osiris_survey/targets/SR3/210626/second/reduced/spectra/"
-tr_dir = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210626/reduced/spectra/"
 tr_files = os.listdir(tr_dir)
 if "plots" in tr_files:
     tr_files.remove("plots")
 tr_counter = 0
 tr_total = len(tr_files)
-
-sky_calib_file = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/s210626_a003002_Kn3_020_calib.fits"
 
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
@@ -75,8 +75,8 @@ def one_location(args):
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(0, 2)
-    xs = np.arange(0, 2)
+    ys = np.arange(0, 10)
+    xs = np.arange(0, 10)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -95,7 +95,7 @@ for filename in files[:]:
         star_spectrum = hdulist[2].data
         mu_x = hdulist[3].data
         mu_y = hdulist[4].data
-        sig_x, sigy = 1, 1
+        sig_x, sig_y = 2, 2
 
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -127,7 +127,7 @@ for filename in files[:]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-            "boxw":3,"nodes":5,"psfw":(sig_x, sigy),
+            "boxw":3,"nodes":5,"psfw":(sig_x, sig_y),
             "badpixfraction":0.75,"optimize_nodes":True}
     fm_func = hc_no_splinefm
     flux_ratio = 1e-2
