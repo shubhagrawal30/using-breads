@@ -34,13 +34,13 @@ from breads.injection import inject_planet, read_planet_info
 import arguments
 
 numthreads = 16
-star = "HD148352"
+star = "SR14"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/09222021/"
+subdirectory = "throughput/09232021/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
@@ -63,8 +63,6 @@ def one_location(args):
     try:
         dataobj.data = deepcopy(dat)
         inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
-        print("setting noise")
-        dataobj.set_noise()
         print("SNR time", location)
         out = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
         N_linpara = (out.shape[-1]-2)//2
@@ -104,6 +102,9 @@ for filename in files[:]:
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
     print(dataobj.refpos)
+
+    print("setting noise")
+    dataobj.set_noise()
 
     # tr_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     # SR3
@@ -197,4 +198,4 @@ for filename in files[:]:
     hdulist.close()
 
     print("DONE", filename)
-    break
+    # break

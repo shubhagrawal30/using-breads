@@ -25,14 +25,14 @@ from breads.fm.hc_no_splinefm import hc_no_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 import arguments
 
-numthreads = 16
-star = "HD148352"
+numthreads = 8
+star = "SR14"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "planets/09222021/"
+subdirectory = "planets/09232021/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -113,7 +113,7 @@ for filename in files[:]:
         #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
         # fm_func = hc_splinefm
         fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "boxw":3,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)),
+                "boxw":3,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux":None, # np.nanmean(star_spectrum) * np.size(star_spectrum)
                 "badpixfraction":0.75,"optimize_nodes":True}
         print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
         fm_func = hc_no_splinefm

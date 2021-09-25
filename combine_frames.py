@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-star = "HD148352"
-fol = "09222021"
+star = "SR14"
+fol = "09232021"
 
-frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210626/reduced/planets/{fol}/"
+frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210628/reduced/planets/{fol}/"
 target = f"{fol}_{star}"
 files = os.listdir(frames_dir)
 
@@ -64,7 +64,7 @@ cbar = plt.colorbar()
 cbar.set_label("SNR")
 plt.title(f"{target}, {(y - yS, x - xS)}, {np.nanmax(snr)}, {len(fluxs.keys())} frames")
 plt.savefig(frames_dir+"combined.png")
-plt.savefig(f"./plots/combined_{target}.png")
+plt.savefig(f"./plots/combined/combined_{target}.png")
 
 snr = snr / noise_calib
 
@@ -83,10 +83,7 @@ cbar = plt.colorbar()
 cbar.set_label("SNR noise calib")
 plt.title(f"{target}, {(y - yS, x - xS)}, {np.nanmax(snr)}, {len(fluxs.keys())} frames")
 plt.savefig(frames_dir+"combined_noisecalib.png")
-plt.savefig(f"./plots/combined_noisecalib_{target}.png")
-plt.show()
-plt.close()
-
+plt.savefig(f"./plots/combined/combined_noisecalib_{target}.png")
 
 hdulist = pyfits.HDUList()
 hdulist.append(pyfits.PrimaryHDU(data=snr,
@@ -97,7 +94,10 @@ hdulist.append(pyfits.PrimaryHDU(data=t_err,
     header=pyfits.Header(cards={"TYPE": "total err", "DIR": frames_dir})))   
                              
 try:
-    hdulist.writeto(f"./plots/combined_{target}.fits", overwrite=True)
+    hdulist.writeto(f"./plots/combined/combined_{target}.fits", overwrite=True)
 except TypeError:
-    hdulist.writeto(f"./plots/combined_{target}.fits", clobber=True)
+    hdulist.writeto(f"./plots/combined/combined_{target}.fits", clobber=True)
 hdulist.close()
+
+plt.show()
+plt.close()

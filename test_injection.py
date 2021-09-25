@@ -39,7 +39,7 @@ tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/TESTSS1/"
+subdirectory = "throughput/TESTSS4/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -75,8 +75,8 @@ def one_location(args):
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(0, 10)
-    xs = np.arange(0, 10)
+    ys = np.arange(0, 4)
+    xs = np.arange(0, 4)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -96,6 +96,7 @@ for filename in files[:]:
         mu_x = hdulist[3].data
         mu_y = hdulist[4].data
         sig_x, sig_y = 1, 1
+        # sig_x, sig_y = np.nanmedian(sig_y), np.nanmedian(sig_x)
 
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -127,7 +128,7 @@ for filename in files[:]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-            "boxw":3,"nodes":5,"psfw":(sig_x, sig_y),
+            "boxw":3,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(star_spectrum) * np.size(star_spectrum),
             "badpixfraction":0.75,"optimize_nodes":True}
     fm_func = hc_no_splinefm
     flux_ratio = 1e-2

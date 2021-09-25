@@ -15,34 +15,37 @@ from pathlib import Path
 # date = "210626/first"
 # star = "SR3"
 
-date = "210627"
+# date = "210627"
 # star = "SR4"
 # star = "ROXs44"
 # star = "ROXs8"
-star = "ROXs4"
+# star = "ROXs4"
 
-# date = "210628"
+date = "210628"
 # star = "ROXs35A"
-# star = "SR14"
+star = "SR14"
 # star = "ROXs43B"
 # star = "SR9"
 
-fol = "TP"
+fol = "09232021"
 target = f"{fol}_{star}"
 
 throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/throughput/{fol}/"
 frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/planets/{fol}/"
+out_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/psf/{fol}/"
 psf_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/"
 fr_files = os.listdir(frames_dir)
 th_files = os.listdir(throughput_dir)
 psf_files = os.listdir(psf_dir)
 
 print("making subdirectories")
-Path(psf_dir+"psf/").mkdir(parents=True, exist_ok=True)
+Path(out_dir).mkdir(parents=True, exist_ok=True)
+Path(f"./plots/scatter/{fol}/").mkdir(parents=True, exist_ok=True)
 
 snrs = {}
 to_flux = 0
 t_err_rec = 0
+# num = 10
 
 for fil in fr_files:
     if "_out.fits" not in fil:
@@ -55,15 +58,18 @@ for fil in fr_files:
     snrs[fil] = out[0,:,:,3] / out[0,:,:,3+N_linpara]
     to_flux += out[0,:,:,3] / (out[0,:,:,3+N_linpara])**2
     t_err_rec += 1 / out[0,:,:,3+N_linpara] ** 2
-    # if len(snrs.values()) == 4:
+    # if len(snrs.values()) == num:
     #     break
 
 to_flux /= t_err_rec
 t_err = 1 / np.sqrt(t_err_rec)
 
 noise_calib = np.nanstd(list(snrs.values()), axis=0)
-
 snr = to_flux / t_err / noise_calib
+
+# snr[snr < -50] = np.nan
+# snr[snr > 50] = np.nan
+
 print("frames combined: ", len(snrs.keys()))
 print(np.nanmax(to_flux))
 print(np.unravel_index(np.nanargmax(to_flux), to_flux.shape))
@@ -73,10 +79,10 @@ detection_flux = to_flux[xD, yD]
 print(detection_snr, (xD, yD), detection_flux)
 # exit()
 
-# plt.figure()
-# plt.imshow(noise_calib, origin="lower")
-# cbar = plt.colorbar()
-# cbar.set_label("noise calib")
+plt.figure()
+plt.imshow(snr, origin="lower")
+cbar = plt.colorbar()
+plt.show()
 
 flux_ratio = 1e-2
 threshold = 5
@@ -136,6 +142,7 @@ for x in range(nx):
 
 psf_dist = []
 psf_profile = []
+count = 0
 for fil in psf_files:
     if ".fits" not in fil:
         print("psf skipping", fil)
@@ -151,7 +158,9 @@ for fil in psf_files:
         for y in range(ny):
             psf_dist += [np.sqrt((y - yS) ** 2 + (x - xS) ** 2) * 20]
             psf_profile += [data[x, y]]
-
+    count += 1
+    # if count == num:
+    #     break
 distances = np.array(distances)
 
 plt.figure()
@@ -162,12 +171,13 @@ plt.plot(np.sqrt((yD - yS) ** 2 + (xD - xS) ** 2) * 20, detection_flux / (t_flux
 # plt.plot(psf_dist, profile / np.nanmean(profile) * np.nanmean(threshold * np.array(values)), "black", label="scaled PSF profile")
 plt.title(f"{target}")
 plt.xlim([np.nanmin(distances[distances > 0]) * 0.8, np.nanmax(distances) / 0.8])
+print("xlim", [np.nanmin(distances[distances > 0]) * 0.8, np.nanmax(distances) / 0.8])
 plt.xscale("log")
 plt.yscale("log")
 plt.legend()
 plt.grid()
-plt.savefig(psf_dir+"psf/scatter.png")
-plt.savefig(f"./plots/scatter/scatter_{target}.png")
+plt.savefig(out_dir+"scatter.png")
+plt.savefig(f"./plots/scatter/{fol}/scatter_{target}.png")
 plt.show()
 
 hdulist = pyfits.HDUList()
@@ -186,13 +196,13 @@ hdulist.append(pyfits.PrimaryHDU(data=np.vstack((distances, values)),
 
                              
 try:
-    hdulist.writeto(psf_dir+"psf/scatter.fits", overwrite=True)
+    hdulist.writeto(out_dir+"scatter.fits", overwrite=True)
 except TypeError:
-    hdulist.writeto(psf_dir+"psf/scatter.fits", clobber=True)
+    hdulist.writeto(out_dir+"scatter.fits", clobber=True)
 hdulist.close()
 
 try:
-    hdulist.writeto(f"./plots/scatter/scatter_{target}.fits", overwrite=True)
+    hdulist.writeto(f"./plots/scatter/{fol}/scatter_{target}.fits", overwrite=True)
 except TypeError:
-    hdulist.writeto(f"./plots/scatter/scatter_{target}.fits", clobber=True)
+    hdulist.writeto(f"./plots/scatter/{fol}/scatter_{target}.fits", clobber=True)
 hdulist.close()
