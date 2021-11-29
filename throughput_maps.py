@@ -34,7 +34,7 @@ from breads.injection import inject_planet, read_planet_info
 import arguments
 
 numthreads = 16
-star = "SR14"
+star = "ROXs44"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]

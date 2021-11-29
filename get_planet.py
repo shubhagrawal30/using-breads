@@ -109,21 +109,21 @@ for filename in files[:]:
         model_broadspec = dataobj.broaden(model_wvs,model_spec)
         planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
-        plt.figure()
-        plt.subplot(2, 1, 1)
-        plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmax(planet_f(dataobj.read_wavelengths)), label="planet model")
-        plt.plot(dataobj.read_wavelengths, star_spectrum / transmission / np.nanmax(star_spectrum / transmission), label="starlight model")
-        plt.xlabel("wavelength")
-        plt.legend()
-        plt.grid()
-        plt.subplot(2, 1, 2)
-        plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmax(planet_f(dataobj.read_wavelengths)), label="planet model")
-        plt.plot(dataobj.read_wavelengths, np.abs(star_spectrum / transmission) / np.nanmax(np.abs(star_spectrum / transmission)), label="starlight model")
-        plt.xlabel("wavelength")
-        plt.legend()
-        plt.grid()
-        plt.savefig("./plots/TEMP5.png")
-        exit()
+        # plt.figure()
+        # plt.subplot(2, 1, 1)
+        # plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmax(planet_f(dataobj.read_wavelengths)), label="planet model")
+        # plt.plot(dataobj.read_wavelengths, star_spectrum / transmission / np.nanmax(star_spectrum / transmission), label="starlight model")
+        # plt.xlabel("wavelength")
+        # plt.legend()
+        # plt.grid()
+        # plt.subplot(2, 1, 2)
+        # plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmax(planet_f(dataobj.read_wavelengths)), label="planet model")
+        # plt.plot(dataobj.read_wavelengths, np.abs(star_spectrum / transmission) / np.nanmax(np.abs(star_spectrum / transmission)), label="starlight model")
+        # plt.xlabel("wavelength")
+        # plt.legend()
+        # plt.grid()
+        # plt.savefig("./plots/TEMP5.png")
+        # exit()
 
         # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
         #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
@@ -140,7 +140,7 @@ for filename in files[:]:
         ys = np.arange(-40, 40)
         xs = np.arange(-20, 20)
 
-        if True: # Example code to test the forward model
+        if False: # Example code to test the forward model
             nonlin_paras = [0, -5, -5] # rv (km/s), y (pix), x (pix)
             # nonlin_paras = [0, 0, 0] # rv (km/s), y (pix), x (pix)
             # d is the data vector a the specified location
