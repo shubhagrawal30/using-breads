@@ -26,13 +26,13 @@ from breads.fm.hc_hpffm import hc_hpffm
 import arguments
 
 numthreads = 8
-star = "SR14"
+star = "AB_Aur"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "planets/09232021/"
+subdirectory = "planets/11292021/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -109,11 +109,27 @@ for filename in files[:]:
         model_broadspec = dataobj.broaden(model_wvs,model_spec)
         planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
+        plt.figure()
+        plt.subplot(2, 1, 1)
+        plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmax(planet_f(dataobj.read_wavelengths)), label="planet model")
+        plt.plot(dataobj.read_wavelengths, star_spectrum / transmission / np.nanmax(star_spectrum / transmission), label="starlight model")
+        plt.xlabel("wavelength")
+        plt.legend()
+        plt.grid()
+        plt.subplot(2, 1, 2)
+        plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmax(planet_f(dataobj.read_wavelengths)), label="planet model")
+        plt.plot(dataobj.read_wavelengths, np.abs(star_spectrum / transmission) / np.nanmax(np.abs(star_spectrum / transmission)), label="starlight model")
+        plt.xlabel("wavelength")
+        plt.legend()
+        plt.grid()
+        plt.savefig("./plots/TEMP5.png")
+        exit()
+
         # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
         #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
         # fm_func = hc_splinefm
         fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "boxw":3,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux":None, # np.nanmean(star_spectrum) * np.size(star_spectrum)
+                "boxw":1,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux":None, # np.nanmean(star_spectrum) * np.size(star_spectrum)
                 "badpixfraction":0.75,"optimize_nodes":True}
         print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
         fm_func = hc_no_splinefm
@@ -124,15 +140,12 @@ for filename in files[:]:
         ys = np.arange(-40, 40)
         xs = np.arange(-20, 20)
 
-        if False: # Example code to test the forward model
-            nonlin_paras = [0, 2, 7] # rv (km/s), y (pix), x (pix)
+        if True: # Example code to test the forward model
+            nonlin_paras = [0, -5, -5] # rv (km/s), y (pix), x (pix)
+            # nonlin_paras = [0, 0, 0] # rv (km/s), y (pix), x (pix)
             # d is the data vector a the specified location
             # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
             # s is the vector of uncertainties corresponding to d
-
-            # plt.plot(dataobj.data[:, 37, 44])
-            # plt.show()
-            # exit()
             
             # log_prob,log_prob_H0,rchi2,linparas,linparas_err = fitfm(nonlin_paras,dataobj,fm_func,fm_paras)
             # print(log_prob,log_prob_H0,rchi2,linparas,linparas_err)
@@ -142,12 +155,55 @@ for filename in files[:]:
             M = M[:,validpara[0]]
             d = d / s
             M = M / s[:, None]
-            print(M.shape, d.shape, s.shape)
+            print(M.shape, d.shape, s.shape, star_spectrum.shape)
             from scipy.optimize import lsq_linear
             paras = lsq_linear(M, d).x
             m = np.dot(M,paras)
 
             print("plotting")
+
+            plt.figure()
+            plt.subplot(2, 1, 1)
+            for k in range(M.shape[-1]-1):
+                print(k)
+                plt.plot(M[:,k+1]/np.nanmax(M[:,k+1]),label="model {0}".format(k+1))
+            plt.legend()
+            plt.grid()
+            plt.subplot(2, 1, 2)
+            plt.plot(d,label="data", alpha=0.5)
+            plt.plot(paras[0]*M[:,0],label="planet model", alpha=0.5)
+            plt.plot(m-paras[0]*M[:,0],label="starlight model")
+            plt.legend()
+            plt.grid()
+            plt.xlabel("wavelength/index")
+            plt.savefig("./plots/TEMP4.png")
+            
+            plt.figure()
+            plt.subplot(2,1,1)
+            plt.plot(dataobj.read_wavelengths, star_spectrum / np.nanmedian(star_spectrum), label= r"star-spectrum $\times$ transmission")
+            plt.legend()
+            plt.grid()
+            plt.subplot(2,1,2)
+            plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmedian(planet_f(dataobj.read_wavelengths)), label= r"planet-spectrum $\times$ transmission")
+            plt.legend()
+            plt.grid()
+            plt.xlabel("wavelength")
+            plt.savefig("./plots/TEMP1.png")
+            
+            plt.figure()
+            plt.subplot(2,1,1)
+            plt.plot(m-paras[0]*M[:,0],label="starlight model")
+            plt.plot(paras[0]*M[:,0],label="planet model")
+            plt.legend()
+            plt.grid()
+            plt.subplot(2,1,2)
+            plt.plot(d,label="data")
+            plt.plot(m,label="combined model")
+            plt.legend()
+            plt.grid()
+            plt.xlabel("wavelength")
+            plt.savefig("./plots/TEMP2.png")
+            exit()
 
             plt.figure()
             plt.subplot(2,1,1)
