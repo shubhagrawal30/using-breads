@@ -26,7 +26,7 @@ from breads.fm.hc_hpffm import hc_hpffm
 import arguments
 
 numthreads = 8
-star = "AB_Aur"
+star = "LkCa15"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
