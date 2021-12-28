@@ -39,7 +39,7 @@ tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/TESTSS4/"
+subdirectory = "throughput/test4/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -62,8 +62,47 @@ def one_location(args):
         dataobj.set_noise()
         out_b = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
         dataobj.data = deepcopy(dat)
+        # plt.figure()
+        # plt.imshow(dataobj.data[0])
         inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
+        # plt.figure()
+        # plt.imshow(dataobj.data[0])
+        # plt.show()
         dataobj.set_noise()
+
+        if False: # Example code to test the forward model
+            nonlin_paras = [0,0,0] # rv (km/s), y (pix), x (pix)
+            # d is the data vector a the specified location
+            # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
+            # s is the vector of uncertainties corresponding to d
+            d, M, s = fm_func(nonlin_paras,dataobj,**fm_paras)
+
+            validpara = np.where(np.sum(M,axis=0)!=0)
+            M = M[:,validpara[0]]
+            d = d / s
+            M = M / s[:, None]
+            from scipy.optimize import lsq_linear
+            paras = lsq_linear(M, d).x
+            m = np.dot(M,paras)
+
+            print("plotting")
+
+            plt.subplot(2,1,1)
+            plt.plot(d,label="data")
+            plt.plot(m,label="model")
+            plt.plot(paras[0]*M[:,0],label="planet model")
+            plt.plot(m-paras[0]*M[:,0],label="starlight model")
+            plt.legend()
+            plt.subplot(2,1,2)
+            plt.plot(M[:,0]/np.max(M[:,0]),label="planet model")
+            for k in range(M.shape[-1]-1):
+                print(k)
+                plt.plot(M[:,k+1]/np.nanmax(M[:,k+1]),label="starlight model {0}".format(k+1))
+            plt.legend()
+            plt.show()
+            plt.close('all')
+            exit()
+
         print("SNR time", location)
         out = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
         N_linpara = (out.shape[-1]-2)//2
@@ -75,8 +114,8 @@ def one_location(args):
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(0, 4)
-    xs = np.arange(0, 4)
+    ys = np.arange(-9, 10)
+    xs = np.arange(-1, 2)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -95,8 +134,8 @@ for filename in files[:]:
         star_spectrum = hdulist[2].data
         mu_x = hdulist[3].data
         mu_y = hdulist[4].data
-        sig_x, sig_y = 1, 1
-        # sig_x, sig_y = np.nanmedian(sig_y), np.nanmedian(sig_x)
+        # sig_x, sig_y = 1, 1
+        sig_x, sig_y = np.nanmedian(hdulist[5].data), np.nanmedian(hdulist[6].data)
 
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -158,7 +197,7 @@ for filename in files[:]:
     cbar.set_label("SNR")
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
     plt.figure()
-    plt.imshow(flux,origin="lower")
+    plt.imshow(flux/flux_ratio,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("flux")
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
