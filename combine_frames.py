@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 star = "SR14"
-fol = "09232021"
+fol = "09232021_wide"
 
 frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210628/reduced/planets/{fol}/"
 target = f"{fol}_{star}"
@@ -31,8 +31,13 @@ for fil in files:
     fluxs[fil] = out[0,:,:,3]
     errs[fil] = out[0,:,:,3+N_linpara]
     snrs[fil] = out[0,:,:,3] / out[0,:,:,3+N_linpara]
-    t_flux += out[0,:,:,3] / (out[0,:,:,3+N_linpara])**2
-    t_err_rec += 1 / out[0,:,:,3+N_linpara] ** 2
+    f = out[0,:,:,3] / (out[0,:,:,3+N_linpara])**2
+    e = 1 / out[0,:,:,3+N_linpara] ** 2
+    nan_locs = np.logical_or(np.isnan(f), np.isnan(e))
+    f[nan_locs] = 0
+    e[nan_locs] = 0
+    t_flux += f
+    t_err_rec += e
 
 t_flux /= t_err_rec
 t_err = 1 / np.sqrt(t_err_rec)
