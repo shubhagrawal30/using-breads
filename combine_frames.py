@@ -14,25 +14,43 @@ fluxs = {}
 errs = {}
 snrs = {}
 
-t_flux = 0
-t_err_rec = 0
+rotated_seqs = []
+
+for fil in files:
+    if "_out.fits" not in fil:
+        continue
+    print("setting size")
+    with pyfits.open(frames_dir + fil) as hdulist:
+        out = hdulist[0].data
+    nx, ny = out[0,:,:,3].shape
+    n = max(nx, ny)
+    pad = (n - min(nx, ny)) // 2
+    if nx > ny:
+        padding=((0,0),(pad,pad))
+    else:
+        padding=((pad,pad),(0,0))
+    # do not know if this works with odd size maps
+    t_flux = np.zeros((n, n))
+    t_err_rec = np.zeros((n, n))
+    break
 
 for fil in files:
     if "_out.fits" not in fil:
         print("skipping", fil)
         continue
-    # if "a049" not in fil and "a049" not in fil:
-    #     print("SKIP", fil)
-    #     continue
     print("DOING", fil)
     with pyfits.open(frames_dir + fil) as hdulist:
         out = hdulist[0].data
     N_linpara = (out.shape[-1]-2)//2
-    fluxs[fil] = out[0,:,:,3]
-    errs[fil] = out[0,:,:,3+N_linpara]
-    snrs[fil] = out[0,:,:,3] / out[0,:,:,3+N_linpara]
-    f = out[0,:,:,3] / (out[0,:,:,3+N_linpara])**2
-    e = 1 / out[0,:,:,3+N_linpara] ** 2
+    flux = np.pad(out[0,:,:,3], padding, constant_values=np.nan)
+    err = np.pad(out[0,:,:,3+N_linpara], padding, constant_values=np.nan)
+    if fil[8:12] in rotated_seqs: # add not if other way
+        print("rotated 90", fil)
+        flux = np.swapaxes(flux, 0, 1)
+        err = np.swapaxes(err, 0, 1)
+    fluxs[fil] = flux; errs[fil] = err; snrs[fil] = flux / err
+    f = flux / (err)**2
+    e = 1 / err ** 2
     nan_locs = np.logical_or(np.isnan(f), np.isnan(e))
     f[nan_locs] = 0
     e[nan_locs] = 0
