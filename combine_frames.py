@@ -2,11 +2,13 @@ import astropy.io.fits as pyfits
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import arguments as args
 
-star = "SR14"
-fol = "09232021_wide"
+star = "AB_Aur"
+date = "211018"
+fol = "11292021"
 
-frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/210628/reduced/planets/{fol}/"
+frames_dir = args.dir_name[star] + f"planets/{fol}/"
 target = f"{fol}_{star}"
 files = os.listdir(frames_dir)
 
@@ -14,7 +16,7 @@ fluxs = {}
 errs = {}
 snrs = {}
 
-rotated_seqs = []
+rotated_seqs = args.rotated_seqs[star]
 
 for fil in files:
     if "_out.fits" not in fil:
@@ -44,7 +46,7 @@ for fil in files:
     N_linpara = (out.shape[-1]-2)//2
     flux = np.pad(out[0,:,:,3], padding, constant_values=np.nan)
     err = np.pad(out[0,:,:,3+N_linpara], padding, constant_values=np.nan)
-    if fil[8:12] in rotated_seqs: # add not if other way
+    if fil[8:12] not in rotated_seqs: # add not if other way TODO
         print("rotated 90", fil)
         flux = np.swapaxes(flux, 0, 1)
         err = np.swapaxes(err, 0, 1)
@@ -79,8 +81,8 @@ xS, yS = np.array(snr.shape) / 2
 print("relative position: ", (y - yS, x - xS))
 
 plt.figure()
-plt.imshow(snr, origin="lower")
 # plt.imshow(snr, origin="lower")
+plt.imshow(snr, origin="lower", vmin=-15, vmax=15)
 plt.plot(yS, xS, "rX")
 plt.plot(y, x, "b.")
 cbar = plt.colorbar()
@@ -98,8 +100,8 @@ xS, yS = np.array(snr.shape) / 2
 print("relative position: ", (y - yS, x - xS))
 
 plt.figure()
-plt.imshow(snr, origin="lower")
 # plt.imshow(snr, origin="lower")
+plt.imshow(snr, origin="lower", vmin=-15, vmax=15)
 plt.plot(yS, xS, "rX")
 plt.plot(y, x, "b.")
 cbar = plt.colorbar()
