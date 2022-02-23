@@ -26,7 +26,7 @@ except:
 
 print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
-from breads.search_planet import search_planet
+from breads.grid_search import grid_search
 from breads.fm.hc_splinefm import hc_splinefm
 from breads.fm.hc_no_splinefm import hc_no_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
@@ -64,9 +64,9 @@ def one_location(args):
         dataobj.data = deepcopy(dat)
         inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
         print("SNR time", location)
-        out = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        N_linpara = (out.shape[-1]-2)//2
-        return indices, out[0,0,0,3], out[0,0,0,3+N_linpara]
+        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
+        N_linpara = linparas.shape[-1]
+        return indices, linparas[0,0,0], linparas_err[0,0,0]
     except Exception as e:
         print(e)
         print("FAILED", filename, location)

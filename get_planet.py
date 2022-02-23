@@ -19,20 +19,21 @@ except:
 
 print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
-from breads.search_planet import search_planet
+from breads.grid_search import grid_search
 from breads.fm.hc_splinefm import hc_splinefm
-from breads.fm.hc_no_splinefm import hc_no_splinefm
+from breads.fm.hc_mask_splinefm import hc_mask_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 import arguments
 
 numthreads = 8
-star = "LkCa15"
+boxw = 3
+star = "HD148352"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "planets/11292021/"
+subdirectory = "planets/02202022/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -66,6 +67,15 @@ for filename in files[:]:
         print("sky calibrating")
         dataobj.calibrate(sky_calib_file)
 
+        print("compute stellar PSF")
+        data = dataobj.data
+        nz, ny, nx = data.shape
+        stamp_y, stamp_x = (boxw-1)//2, (boxw-1)//2
+        img_mean = np.nanmedian(data.data, axis=0)
+        star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
+        stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
+        total_flux = np.sum(stamp)
+        stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
 
         spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
         print("Reading spectrum file", spec_file)
@@ -129,10 +139,10 @@ for filename in files[:]:
         #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
         # fm_func = hc_splinefm
         fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "boxw":1,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux":None, # np.nanmean(star_spectrum) * np.size(star_spectrum)
-                "badpixfraction":0.75,"optimize_nodes":True}
+                "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux": np.nanmean(star_spectrum) * np.size(star_spectrum),
+                "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp}
         print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
-        fm_func = hc_no_splinefm
+        fm_func = hc_mask_splinefm
         # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
         #             "boxw":3,"psfw":1.5,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
         # fm_func = hc_hpffm
@@ -141,7 +151,7 @@ for filename in files[:]:
         xs = np.arange(-20, 20)
 
         if False: # Example code to test the forward model
-            nonlin_paras = [0, -5, -5] # rv (km/s), y (pix), x (pix)
+            nonlin_paras = [0, 0, 12] # rv (km/s), y (pix), x (pix)
             # nonlin_paras = [0, 0, 0] # rv (km/s), y (pix), x (pix)
             # d is the data vector a the specified location
             # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
@@ -150,6 +160,7 @@ for filename in files[:]:
             # log_prob,log_prob_H0,rchi2,linparas,linparas_err = fitfm(nonlin_paras,dataobj,fm_func,fm_paras)
             # print(log_prob,log_prob_H0,rchi2,linparas,linparas_err)
             d, M, s = fm_func(nonlin_paras,dataobj,**fm_paras)
+            s = np.ones_like(s)
 
             validpara = np.where(np.sum(M,axis=0)!=0)
             M = M[:,validpara[0]]
@@ -162,50 +173,50 @@ for filename in files[:]:
 
             print("plotting")
 
-            plt.figure()
-            plt.subplot(2, 1, 1)
-            for k in range(M.shape[-1]-1):
-                print(k)
-                plt.plot(M[:,k+1]/np.nanmax(M[:,k+1]),label="model {0}".format(k+1))
-            plt.legend()
-            plt.grid()
-            plt.subplot(2, 1, 2)
-            plt.plot(d,label="data", alpha=0.5)
-            plt.plot(paras[0]*M[:,0],label="planet model", alpha=0.5)
-            plt.plot(m-paras[0]*M[:,0],label="starlight model")
-            plt.legend()
-            plt.grid()
-            plt.xlabel("wavelength/index")
-            plt.savefig("./plots/TEMP4.png")
+            # plt.figure()
+            # plt.subplot(2, 1, 1)
+            # for k in range(M.shape[-1]-1):
+            #     print(k)
+            #     plt.plot(M[:,k+1]/np.nanmax(M[:,k+1]),label="model {0}".format(k+1))
+            # plt.legend()
+            # plt.grid()
+            # plt.subplot(2, 1, 2)
+            # plt.plot(d,label="data", alpha=0.5)
+            # plt.plot(paras[0]*M[:,0],label="planet model", alpha=0.5)
+            # plt.plot(m-paras[0]*M[:,0],label="starlight model")
+            # plt.legend()
+            # plt.grid()
+            # plt.xlabel("wavelength/index")
+            # plt.savefig("./plots/TEMP4.png")
             
-            plt.figure()
-            plt.subplot(2,1,1)
-            plt.plot(dataobj.read_wavelengths, star_spectrum / np.nanmedian(star_spectrum), label= r"star-spectrum $\times$ transmission")
-            plt.legend()
-            plt.grid()
-            plt.subplot(2,1,2)
-            plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmedian(planet_f(dataobj.read_wavelengths)), label= r"planet-spectrum $\times$ transmission")
-            plt.legend()
-            plt.grid()
-            plt.xlabel("wavelength")
-            plt.savefig("./plots/TEMP1.png")
+            # plt.figure()
+            # plt.subplot(2,1,1)
+            # plt.plot(dataobj.read_wavelengths, star_spectrum / np.nanmedian(star_spectrum), label= r"star-spectrum $\times$ transmission")
+            # plt.legend()
+            # plt.grid()
+            # plt.subplot(2,1,2)
+            # plt.plot(dataobj.read_wavelengths, planet_f(dataobj.read_wavelengths) / np.nanmedian(planet_f(dataobj.read_wavelengths)), label= r"planet-spectrum $\times$ transmission")
+            # plt.legend()
+            # plt.grid()
+            # plt.xlabel("wavelength")
+            # plt.savefig("./plots/TEMP1.png")
             
-            plt.figure()
-            plt.subplot(2,1,1)
-            plt.plot(m-paras[0]*M[:,0],label="starlight model")
-            plt.plot(paras[0]*M[:,0],label="planet model")
-            plt.legend()
-            plt.grid()
-            plt.subplot(2,1,2)
-            plt.plot(d,label="data")
-            plt.plot(m,label="combined model")
-            plt.legend()
-            plt.grid()
-            plt.xlabel("wavelength")
-            plt.savefig("./plots/TEMP2.png")
-            exit()
+            # plt.figure()
+            # plt.subplot(2,1,1)
+            # plt.plot(m-paras[0]*M[:,0],label="starlight model")
+            # plt.plot(paras[0]*M[:,0],label="planet model")
+            # plt.legend()
+            # plt.grid()
+            # plt.subplot(2,1,2)
+            # plt.plot(d,label="data")
+            # plt.plot(m,label="combined model")
+            # plt.legend()
+            # plt.grid()
+            # plt.xlabel("wavelength")
+            # plt.savefig("./plots/TEMP2.png")
+            # exit()
 
-            plt.figure()
+            # plt.figure()
             plt.subplot(2,1,1)
             plt.plot(d,label="data")
             plt.plot(m,label="model")
@@ -234,30 +245,29 @@ for filename in files[:]:
             exit()
 
         print("SNR time")
-        out = search_planet([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        N_linpara = (out.shape[-1]-2)//2
-        print(out.shape)
+        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
+        N_linpara = linparas.shape[-1]
 
-        hdulist = pyfits.HDUList()
-        hdulist.append(pyfits.PrimaryHDU(data=out,
-            header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
-                                        "FLUX": spec_file, "TRANS": tr_file})))                                  
-        try:
-            hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", overwrite=True)
-        except TypeError:
-            hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", clobber=True)
-        hdulist.close()
+        # hdulist = pyfits.HDUList()
+        # hdulist.append(pyfits.PrimaryHDU(data=out,
+        #     header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
+        #                                 "FLUX": spec_file, "TRANS": tr_file})))                                  
+        # try:
+        #     hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", overwrite=True)
+        # except TypeError:
+        #     hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", clobber=True)
+        # hdulist.close()
 
         plt.figure()
-        plt.imshow(out[0,:,:,3]/out[0,:,:,3+N_linpara],origin="lower", vmin=-10, vmax=10)
+        plt.imshow(linparas[0,:,:,0]/linparas_err[0,:,:,0],origin="lower", vmin=-10, vmax=10)
         cbar = plt.colorbar()
         cbar.set_label("SNR")
-        # plt.show()
-        plt.savefig(dir_name+subdirectory+filename[:-5]+"_snr.png")
+        plt.show()
+        # plt.savefig(dir_name+subdirectory+filename[:-5]+"_snr.png")
         plt.close()
         print("DONE", filename)
-        # break
+        break
     except Exception as e:
         print(e)
         print("FAILED", filename)
-        # break
+        break

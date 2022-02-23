@@ -16,6 +16,7 @@ from multiprocessing.pool import ThreadPool
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 numthreads = 16
+boxw = 3
 
 print("Importing mkl")
 try:
@@ -26,9 +27,9 @@ except:
 
 print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
-from breads.search_planet import search_planet
+from breads.grid_search import grid_search
 from breads.fm.hc_splinefm import hc_splinefm
-from breads.fm.hc_no_splinefm import hc_no_splinefm
+from breads.fm.hc_mask_splinefm import hc_mask_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 import arguments
@@ -39,7 +40,7 @@ tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/test4/"
+subdirectory = "throughput/20210223/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -60,7 +61,7 @@ def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
     if 1:
         dataobj.set_noise()
-        out_b = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
+        log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
         dataobj.data = deepcopy(dat)
         # plt.figure()
         # plt.imshow(dataobj.data[0])
@@ -104,9 +105,9 @@ def one_location(args):
             exit()
 
         print("SNR time", location)
-        out = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        N_linpara = (out.shape[-1]-2)//2
-        return indices, out[0,0,0,3] - out_b[0,0,0,3], out[0,0,0,3+N_linpara]
+        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
+        N_linpara = linparas.shape[-1]
+        return indices, linparas[0,0,0,0] - linparas_b[0,0,0,0], linparas_err[0,0,0,0]
     # except Exception as e:
     #     print(e)
     #     print("FAILED", filename, location)
@@ -114,8 +115,8 @@ def one_location(args):
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(-9, 10)
-    xs = np.arange(-1, 2)
+    ys = np.arange(-2, 3)
+    xs = np.arange(-2, 3)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -127,6 +128,16 @@ for filename in files[:]:
 
     print("sky calibrating")
     dataobj.calibrate(sky_calib_file)
+
+    print("compute stellar PSF")
+    data = dataobj.data
+    nz, ny, nx = data.shape
+    stamp_y, stamp_x = (boxw-1)//2, (boxw-1)//2
+    img_mean = np.nanmedian(data.data, axis=0)
+    star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
+    stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
+    total_flux = np.sum(stamp)
+    stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     print("Reading spectrum file", spec_file)
@@ -167,9 +178,9 @@ for filename in files[:]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-            "boxw":3,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(star_spectrum) * np.size(star_spectrum),
-            "badpixfraction":0.75,"optimize_nodes":True}
-    fm_func = hc_no_splinefm
+            "boxw":boxw,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(star_spectrum) * np.size(star_spectrum),
+            "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
+    fm_func = hc_mask_splinefm
     flux_ratio = 1e-2
     
     print("setting noise")
