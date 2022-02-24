@@ -16,7 +16,7 @@ from multiprocessing.pool import ThreadPool
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 numthreads = 16
-boxw = 3
+boxw = 5
 
 print("Importing mkl")
 try:
@@ -60,19 +60,19 @@ tr_total = len(tr_files)
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
     if 1:
+        dataobj.data = deepcopy(dat)
         dataobj.set_noise()
         log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        dataobj.data = deepcopy(dat)
         # plt.figure()
-        # plt.imshow(dataobj.data[0])
+        # plt.imshow(np.nansum(dataobj.data, axis=0))
         inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
         # plt.figure()
-        # plt.imshow(dataobj.data[0])
+        # plt.imshow(np.nansum(dataobj.data, axis=0))
         # plt.show()
         dataobj.set_noise()
 
         if False: # Example code to test the forward model
-            nonlin_paras = [0,0,0] # rv (km/s), y (pix), x (pix)
+            nonlin_paras = [rvs[0],location[0],location[1]] # rv (km/s), y (pix), x (pix)
             # d is the data vector a the specified location
             # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
             # s is the vector of uncertainties corresponding to d
@@ -87,7 +87,7 @@ def one_location(args):
             m = np.dot(M,paras)
 
             print("plotting")
-
+            print(paras)
             plt.subplot(2,1,1)
             plt.plot(d,label="data")
             plt.plot(m,label="model")
@@ -115,7 +115,7 @@ def one_location(args):
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(-2, 3)
+    ys = np.arange(-10, 11)
     xs = np.arange(-2, 3)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
@@ -129,15 +129,24 @@ for filename in files[:]:
     print("sky calibrating")
     dataobj.calibrate(sky_calib_file)
 
-    print("compute stellar PSF")
+    print("compute stellar PSF stamp")
     data = dataobj.data
     nz, ny, nx = data.shape
     stamp_y, stamp_x = (boxw-1)//2, (boxw-1)//2
-    img_mean = np.nanmedian(data.data, axis=0)
+    img_mean = np.nanmedian(data, axis=0)
     star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
     stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
-    total_flux = np.sum(stamp)
-    stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
+    total_flux = np.nansum(stamp)
+    # stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
+
+    # plt.figure()
+    # plt.imshow(np.nanmedian(stamp, axis=0), origin="lower")
+    # plt.show()
+    # plt.close()
+
+    print(total_flux)
+    print(np.nansum(dataobj.data))
+    print(np.nansum(dataobj.data - np.nanmedian(dataobj.data)))
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     print("Reading spectrum file", spec_file)
@@ -178,10 +187,10 @@ for filename in files[:]:
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-            "boxw":boxw,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(star_spectrum) * np.size(star_spectrum),
+            "boxw":boxw,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(stamp) * np.size(stamp),
             "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
     fm_func = hc_mask_splinefm
-    flux_ratio = 1e-2
+    flux_ratio = 1
     
     print("setting noise")
     dataobj.set_noise()
