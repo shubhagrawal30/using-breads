@@ -27,7 +27,7 @@ import arguments
 
 numthreads = 8
 boxw = 3
-star = "HD148352"
+star = "AB_Aur"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
@@ -71,7 +71,7 @@ for filename in files[:]:
         data = dataobj.data
         nz, ny, nx = data.shape
         stamp_y, stamp_x = (boxw-1)//2, (boxw-1)//2
-        img_mean = np.nanmedian(data.data, axis=0)
+        img_mean = np.nanmedian(data, axis=0)
         star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
         stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
         total_flux = np.sum(stamp)

@@ -12,11 +12,11 @@ from breads.fit import fitfm
 from copy import deepcopy
 import multiprocessing as mp
 from itertools import repeat
-from multiprocessing.pool import ThreadPool
-from concurrent.futures import ProcessPoolExecutor as Pool
+# from multiprocessing.pool import ThreadPool
+# from concurrent.futures import ProcessPoolExecutor as Pool
 
 numthreads = 16
-boxw = 5
+boxw = 3
 
 print("Importing mkl")
 try:
@@ -60,17 +60,16 @@ tr_total = len(tr_files)
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
     if 1:
-        dataobj.data = deepcopy(dat)
         dataobj.set_noise()
-        log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
+        log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=None)
+        fk_dataobj = deepcopy(dataobj)
         # plt.figure()
         # plt.imshow(np.nansum(dataobj.data, axis=0))
-        inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
+        inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio)
         # plt.figure()
-        # plt.imshow(np.nansum(dataobj.data, axis=0))
+        # plt.imshow(np.nansum(fk_dataobj.data, axis=0))
         # plt.show()
-        dataobj.set_noise()
-
+        fk_dataobj.set_noise()
         if False: # Example code to test the forward model
             nonlin_paras = [rvs[0],location[0],location[1]] # rv (km/s), y (pix), x (pix)
             # d is the data vector a the specified location
@@ -105,8 +104,7 @@ def one_location(args):
             exit()
 
         print("SNR time", location)
-        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        N_linpara = linparas.shape[-1]
+        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[location[0]],[location[1]]],fk_dataobj,fm_func,fm_paras,numthreads=None)
         return indices, linparas[0,0,0,0] - linparas_b[0,0,0,0], linparas_err[0,0,0,0]
     # except Exception as e:
     #     print(e)
@@ -115,8 +113,10 @@ def one_location(args):
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(-10, 11)
-    xs = np.arange(-2, 3)
+    # ys = [10]
+    # xs = [15]
+    ys = np.arange(-20,20)
+    xs = np.arange(-10,10)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -125,6 +125,7 @@ for filename in files[:]:
     print(filename)
     dataobj = OSIRIS(dir_name+filename) 
     nz,ny,nx = dataobj.data.shape
+    dataobj.set_noise()
 
     print("sky calibrating")
     dataobj.calibrate(sky_calib_file)
@@ -138,15 +139,6 @@ for filename in files[:]:
     stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
     total_flux = np.nansum(stamp)
     # stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
-
-    # plt.figure()
-    # plt.imshow(np.nanmedian(stamp, axis=0), origin="lower")
-    # plt.show()
-    # plt.close()
-
-    print(total_flux)
-    print(np.nansum(dataobj.data))
-    print(np.nansum(dataobj.data - np.nanmedian(dataobj.data)))
 
     spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
     print("Reading spectrum file", spec_file)
@@ -186,52 +178,56 @@ for filename in files[:]:
     model_broadspec = dataobj.broaden(model_wvs,model_spec)
     planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
 
+    # print((np.nanmedian(mu_y), np.nanmedian(mu_x)))
+    # plt.imshow(np.nansum(dataobj.data,axis=(0)),origin="lower")
+    # plt.show()
+    # exit()
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-            "boxw":boxw,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(stamp) * np.size(stamp),
+            "boxw":boxw,"nodes":10,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(stamp) * np.size(stamp),
             "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
     fm_func = hc_mask_splinefm
     flux_ratio = 1
-    
+
     print("setting noise")
     dataobj.set_noise()
-    
+
     args1 = []
     args2 = []
     for i, x in enumerate(xs):
         for j, y in enumerate(ys):
             args1 += [(y, x)]
             args2 += [(j, i)]
-    
-    args = zip(repeat(dataobj), args1, args2, repeat(planet_f), repeat(spec_file),\
-         repeat(transmission), repeat(flux_ratio), repeat(dat), repeat(filename))
 
-    with Pool() as tpool:
+    args = zip(repeat(dataobj), args1, args2, repeat(planet_f), repeat(spec_file),\
+            repeat(transmission), repeat(flux_ratio), repeat(dat), repeat(filename))
+
+    with mp.Pool(processes=numthreads) as tpool:
         for indices, f, n in tpool.map(one_location, args):
             print(indices, f, n)
             j, i = indices
             flux[j, i], noise[j, i] = f, n
 
-    plt.figure()
+    plt.figure(1)
     plt.imshow(flux/noise,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("SNR")
-    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
-    plt.figure()
+    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
+    plt.figure(2)
     plt.imshow(flux/flux_ratio,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("flux")
-    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
-    plt.figure()
+    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
+    plt.figure(3)
     plt.imshow(noise,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("noise")
-    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_noise.png")
-    plt.close('all')
-
+    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_noise.png")
+    # plt.close('all')
+    plt.show()
     hdulist = pyfits.HDUList()
     hdulist.append(pyfits.PrimaryHDU(data=flux,
         header=pyfits.Header(cards={"TYPE": "flux", "FILE": filename, "PLANET": planet_btsettl,\
-                                        "FLUX": spec_file, "TRANS": tr_file})))    
+                                        "FLUX": spec_file, "TRANS": tr_file})))
     hdulist.append(pyfits.PrimaryHDU(data=noise,
         header=pyfits.Header(cards={"TYPE": "noise", "FILE": filename, "PLANET": planet_btsettl,\
                                         "FLUX": spec_file, "TRANS": tr_file})))   
