@@ -183,10 +183,10 @@ for filename in files[:]:
     # plt.show()
     # exit()
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-            "boxw":boxw,"nodes":10,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(stamp) * np.size(stamp),
+            "boxw":boxw,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(stamp) * np.size(stamp),
             "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
     fm_func = hc_mask_splinefm
-    flux_ratio = 1
+    flux_ratio = 1e-2
 
     print("setting noise")
     dataobj.set_noise()
