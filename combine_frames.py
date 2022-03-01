@@ -4,9 +4,9 @@ import numpy as np
 import os
 import arguments as args
 
-star = "AB_Aur"
-date = "211018"
-fol = "11292021"
+star = "HD148352"
+date = args.dates[star]
+fol = "20220301"
 
 frames_dir = args.dir_name[star] + f"planets/{fol}/"
 target = f"{fol}_{star}"
@@ -16,15 +16,18 @@ fluxs = {}
 errs = {}
 snrs = {}
 
-rotated_seqs = args.rotated_seqs[star]
+if star in args.rotated_seqs.keys():
+    rotated_seqs = args.rotated_seqs[star]
+else:
+    rotated_seqs = []
 
 for fil in files:
     if "_out.fits" not in fil:
         continue
     print("setting size")
     with pyfits.open(frames_dir + fil) as hdulist:
-        out = hdulist[0].data
-    nx, ny = out[0,:,:,3].shape
+        linparas = hdulist[3].data
+    nx, ny = linparas[0,:,:,0].shape
     n = max(nx, ny)
     pad = (n - min(nx, ny)) // 2
     if nx > ny:
@@ -42,11 +45,11 @@ for fil in files:
         continue
     print("DOING", fil)
     with pyfits.open(frames_dir + fil) as hdulist:
-        out = hdulist[0].data
-    N_linpara = (out.shape[-1]-2)//2
-    flux = np.pad(out[0,:,:,3], padding, constant_values=np.nan)
-    err = np.pad(out[0,:,:,3+N_linpara], padding, constant_values=np.nan)
-    if fil[8:12] not in rotated_seqs: # add not if other way TODO
+        linparas = hdulist[3].data
+        linparas_err = hdulist[4].data
+    flux = np.pad(linparas[0,:,:,0], padding, constant_values=np.nan)
+    err = np.pad(linparas_err[0,:,:,0], padding, constant_values=np.nan)
+    if fil[8:12] in rotated_seqs: # add not if other way TODO
         print("rotated 90", fil)
         flux = np.swapaxes(flux, 0, 1)
         err = np.swapaxes(err, 0, 1)

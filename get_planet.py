@@ -27,13 +27,13 @@ import arguments
 
 numthreads = 8
 boxw = 3
-star = "AB_Aur"
+star = "HD148352"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "planets/02202022/"
+subdirectory = "planets/20220301/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -248,22 +248,34 @@ for filename in files[:]:
         log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,ys,xs],dataobj,fm_func,fm_paras,numthreads=numthreads)
         N_linpara = linparas.shape[-1]
 
-        # hdulist = pyfits.HDUList()
-        # hdulist.append(pyfits.PrimaryHDU(data=out,
-        #     header=pyfits.Header(cards={"TYPE": "output", "FILE": filename, "PLANET": planet_btsettl,\
-        #                                 "FLUX": spec_file, "TRANS": tr_file})))                                  
-        # try:
-        #     hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", overwrite=True)
-        # except TypeError:
-        #     hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", clobber=True)
-        # hdulist.close()
+        hdulist = pyfits.HDUList()
+        hdulist.append(pyfits.PrimaryHDU(data=log_prob,
+            header=pyfits.Header(cards={"TYPE": "log_prob", "FILE": filename, "PLANET": planet_btsettl,\
+                                        "FLUX": spec_file, "TRANS": tr_file}))) 
+        hdulist.append(pyfits.PrimaryHDU(data=log_prob_H0,
+            header=pyfits.Header(cards={"TYPE": "log_prob_H0", "FILE": filename, "PLANET": planet_btsettl,\
+                                        "FLUX": spec_file, "TRANS": tr_file}))) 
+        hdulist.append(pyfits.PrimaryHDU(data=rchi2,
+            header=pyfits.Header(cards={"TYPE": "rchi2", "FILE": filename, "PLANET": planet_btsettl,\
+                                        "FLUX": spec_file, "TRANS": tr_file}))) 
+        hdulist.append(pyfits.PrimaryHDU(data=linparas,
+            header=pyfits.Header(cards={"TYPE": "linparas", "FILE": filename, "PLANET": planet_btsettl,\
+                                        "FLUX": spec_file, "TRANS": tr_file}))) 
+        hdulist.append(pyfits.PrimaryHDU(data=linparas_err,
+            header=pyfits.Header(cards={"TYPE": "log_prob", "FILE": filename, "PLANET": planet_btsettl,\
+                                        "FLUX": spec_file, "TRANS": tr_file})))                                  
+        try:
+            hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", overwrite=True)
+        except TypeError:
+            hdulist.writeto(dir_name+subdirectory+filename[:-5]+"_out.fits", clobber=True)
+        hdulist.close()
 
         plt.figure()
         plt.imshow(linparas[0,:,:,0]/linparas_err[0,:,:,0],origin="lower", vmin=-10, vmax=10)
         cbar = plt.colorbar()
         cbar.set_label("SNR")
-        plt.show()
-        # plt.savefig(dir_name+subdirectory+filename[:-5]+"_snr.png")
+        # plt.show()
+        plt.savefig(dir_name+subdirectory+filename[:-5]+"_snr.png")
         plt.close()
         print("DONE", filename)
         break
