@@ -34,13 +34,13 @@ from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 import arguments
 
-star = "SR3"
+star = "AB_Aur"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/20210223/"
+subdirectory = "throughput/20220405/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -57,18 +57,28 @@ if "plots" in tr_files:
 tr_counter = 0
 tr_total = len(tr_files)
 
+if star in arguments.rotated_seqs.keys():
+    rotated_seqs = arguments.rotated_seqs[star]
+else:
+    rotated_seqs = []
+
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
     if 1:
         dataobj.set_noise()
         log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=None)
         fk_dataobj = deepcopy(dataobj)
-        # plt.figure()
-        # plt.imshow(np.nansum(dataobj.data, axis=0))
-        inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio)
-        # plt.figure()
-        # plt.imshow(np.nansum(fk_dataobj.data, axis=0))
-        # plt.show()
+        plt.figure()
+        plt.imshow(np.nansum(dataobj.data, axis=0))
+        if filename[8:12] in rotated_seqs: # add not if other way TODO
+            print("rotated 90", filename)
+            rotate = True
+        else:
+            rotate = False
+        inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio, rotated_90=rotate)
+        plt.figure()
+        plt.imshow(np.nansum(fk_dataobj.data, axis=0))
+        plt.show()
         fk_dataobj.set_noise()
         if False: # Example code to test the forward model
             nonlin_paras = [rvs[0],location[0],location[1]] # rv (km/s), y (pix), x (pix)
@@ -111,12 +121,12 @@ def one_location(args):
     #     print("FAILED", filename, location)
     #     return indices, np.nan, np.nan
 
-for filename in files[:]:
+for filename in files[40:]:
     rvs = np.array([0])
-    # ys = [10]
-    # xs = [15]
-    ys = np.arange(-20,20)
-    xs = np.arange(-10,10)
+    ys = [10]
+    xs = [10]
+    # ys = np.arange(-20,20)
+    # xs = np.arange(-10,10)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -186,7 +196,7 @@ for filename in files[:]:
             "boxw":boxw,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(stamp) * np.size(stamp),
             "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
     fm_func = hc_mask_splinefm
-    flux_ratio = 1e-2
+    flux_ratio = 1#e-2
 
     print("setting noise")
     dataobj.set_noise()

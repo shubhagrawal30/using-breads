@@ -4,9 +4,11 @@ import numpy as np
 import os
 import arguments as args
 
-star = "HD148352"
+star = "AB_Aur"
+# star = "HD148352"
 date = args.dates[star]
-fol = "20220301"
+# fol = "11292021"
+fol = "20220402"
 
 frames_dir = args.dir_name[star] + f"planets/{fol}/"
 target = f"{fol}_{star}"
@@ -51,8 +53,8 @@ for fil in files:
     err = np.pad(linparas_err[0,:,:,0], padding, constant_values=np.nan)
     if fil[8:12] in rotated_seqs: # add not if other way TODO
         print("rotated 90", fil)
-        flux = np.swapaxes(flux, 0, 1)
-        err = np.swapaxes(err, 0, 1)
+        flux = np.rot90(flux, 1, (0, 1))
+        err = np.rot90(err, 1, (0, 1))
     fluxs[fil] = flux; errs[fil] = err; snrs[fil] = flux / err
     f = flux / (err)**2
     e = 1 / err ** 2
