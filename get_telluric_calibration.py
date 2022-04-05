@@ -13,7 +13,7 @@ except:
 
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/SR3/210628/second/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/HIP73049/210628/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/AB_Aur/211019/2/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/AB_Aur/211018/2/reduced/"
 files = os.listdir(dir_name)
 
 print("making subdirectories")

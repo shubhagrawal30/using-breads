@@ -27,13 +27,13 @@ import arguments
 
 numthreads = 8
 boxw = 3
-star = "HD148352"
+star = "AB_Aur"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "planets/20220301/"
+subdirectory = "planets/20220405/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -150,8 +150,8 @@ for filename in files[:]:
         ys = np.arange(-40, 40)
         xs = np.arange(-20, 20)
 
-        if False: # Example code to test the forward model
-            nonlin_paras = [0, 0, 12] # rv (km/s), y (pix), x (pix)
+        if True: # Example code to test the forward model
+            nonlin_paras = [0, 0, 0] # rv (km/s), y (pix), x (pix)
             # nonlin_paras = [0, 0, 0] # rv (km/s), y (pix), x (pix)
             # d is the data vector a the specified location
             # M is the linear component of the model. M is a function of the non linear parameters x,y,rv
@@ -278,8 +278,8 @@ for filename in files[:]:
         plt.savefig(dir_name+subdirectory+filename[:-5]+"_snr.png")
         plt.close()
         print("DONE", filename)
-        break
+        # break
     except Exception as e:
         print(e)
         print("FAILED", filename)
-        break
+        # break

@@ -77,6 +77,13 @@ tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/1
 sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a008002_Kn3_020_calib.fits"
 rotated_seqs[star] = ["a013", "a014", "a015", "a016", "a017", "a018"]
 
+# star = "AB_Aur"
+# dates[star] = "211018"
+# dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/2/reduced/"
+# tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/2/reduced/spectra/"
+# sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a008002_Kn3_020_calib.fits"
+# rotated_seqs[star] = ["a013", "a014", "a015", "a016", "a017", "a018"]
+
 star = "CW_Tau"
 dates[star] = "211018"
 dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
