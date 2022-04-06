@@ -28,19 +28,20 @@ print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
 from breads.grid_search import grid_search
 from breads.fm.hc_splinefm import hc_splinefm
-from breads.fm.hc_no_splinefm import hc_no_splinefm
+from breads.fm.hc_mask_splinefm import hc_mask_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 import arguments
 
 numthreads = 16
-star = "ROXs44"
+star = "HD148352"
+boxw = 3
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/09232021/"
+subdirectory = "throughput/20220406/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
@@ -58,15 +59,24 @@ if "plots" in tr_files:
 tr_counter = 0
 tr_total = len(tr_files)
 
+if star in arguments.rotated_seqs.keys():
+    rotated_seqs = arguments.rotated_seqs[star]
+else:
+    rotated_seqs = []
+
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
     try:
         dataobj.data = deepcopy(dat)
-        inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
+        if filename[8:12] in rotated_seqs: # add not if other way TODO
+            print("rotated 90", filename)
+            rotate = True
+        else:
+            rotate = False
+        inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio, rotated_90=rotate)
         print("SNR time", location)
         log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        N_linpara = linparas.shape[-1]
-        return indices, linparas[0,0,0], linparas_err[0,0,0]
+        return indices, linparas[0,0,0,0], linparas_err[0,0,0,0]
     except Exception as e:
         print(e)
         print("FAILED", filename, location)
@@ -74,10 +84,10 @@ def one_location(args):
 
 for filename in files[:]:
     rvs = np.array([0])
-    ys = np.arange(-40, 40)
-    xs = np.arange(-20, 20)
-    # ys = np.arange(-5, 5)
-    # xs = np.arange(-5, 5)
+    # ys = np.arange(-40, 40)
+    # xs = np.arange(-20, 20)
+    ys = np.arange(-15,15)
+    xs = np.arange(-7,7)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -98,6 +108,17 @@ for filename in files[:]:
         mu_y = hdulist[4].data
         sig_x = hdulist[5].data
         sig_y = hdulist[6].data
+
+    print("compute stellar PSF")
+    data = dataobj.data
+    nz, ny, nx = data.shape
+    stamp_y, stamp_x = (boxw-1)//2, (boxw-1)//2
+    img_mean = np.nanmedian(data, axis=0)
+    star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
+    stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
+    total_flux = np.sum(stamp)
+    stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
+
 
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -135,10 +156,10 @@ for filename in files[:]:
     #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
     # fm_func = hc_splinefm
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "boxw":3,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)),
-                "badpixfraction":0.75,"optimize_nodes":True}
+                "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux": np.nanmean(star_spectrum) * np.size(star_spectrum),
+                "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp}
     print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
-    fm_func = hc_no_splinefm
+    fm_func = hc_mask_splinefm
     # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
     #             "boxw":3,"psfw":1.5,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
     # fm_func = hc_hpffm

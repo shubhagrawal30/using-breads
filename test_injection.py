@@ -34,13 +34,13 @@ from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 import arguments
 
-star = "AB_Aur"
+star = "HD148352"
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/20220405/"
+subdirectory = "throughput/20220406/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -68,17 +68,17 @@ def one_location(args):
         dataobj.set_noise()
         log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=None)
         fk_dataobj = deepcopy(dataobj)
-        plt.figure()
-        plt.imshow(np.nansum(dataobj.data, axis=0))
+        # plt.figure()
+        # plt.imshow(np.nansum(dataobj.data, axis=0))
         if filename[8:12] in rotated_seqs: # add not if other way TODO
             print("rotated 90", filename)
             rotate = True
         else:
             rotate = False
         inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio, rotated_90=rotate)
-        plt.figure()
-        plt.imshow(np.nansum(fk_dataobj.data, axis=0))
-        plt.show()
+        # plt.figure()
+        # plt.imshow(np.nansum(fk_dataobj.data, axis=0))
+        # plt.show()
         fk_dataobj.set_noise()
         if False: # Example code to test the forward model
             nonlin_paras = [rvs[0],location[0],location[1]] # rv (km/s), y (pix), x (pix)
@@ -121,12 +121,12 @@ def one_location(args):
     #     print("FAILED", filename, location)
     #     return indices, np.nan, np.nan
 
-for filename in files[40:]:
+for filename in files[:]:
     rvs = np.array([0])
-    ys = [10]
-    xs = [10]
-    # ys = np.arange(-20,20)
-    # xs = np.arange(-10,10)
+    # ys = [10]
+    # xs = [10]
+    ys = np.arange(-15,15)
+    xs = np.arange(-7,7)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
@@ -193,10 +193,10 @@ for filename in files[40:]:
     # plt.show()
     # exit()
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-            "boxw":boxw,"nodes":5,"psfw":(sig_x, sig_y), "star_flux":np.nanmean(stamp) * np.size(stamp),
+            "boxw":boxw,"nodes":5,"psfw":(sig_y, sig_x), "star_flux":np.nanmean(stamp) * np.size(stamp),
             "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
     fm_func = hc_mask_splinefm
-    flux_ratio = 1#e-2
+    flux_ratio = 1e-2
 
     print("setting noise")
     dataobj.set_noise()
@@ -221,19 +221,19 @@ for filename in files[40:]:
     plt.imshow(flux/noise,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("SNR")
-    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
+    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
     plt.figure(2)
     plt.imshow(flux/flux_ratio,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("flux")
-    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
+    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
     plt.figure(3)
     plt.imshow(noise,origin="lower")
     cbar = plt.colorbar()
     cbar.set_label("noise")
-    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_noise.png")
-    # plt.close('all')
-    plt.show()
+    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_noise.png")
+    plt.close('all')
+    # plt.show()
     hdulist = pyfits.HDUList()
     hdulist.append(pyfits.PrimaryHDU(data=flux,
         header=pyfits.Header(cards={"TYPE": "flux", "FILE": filename, "PLANET": planet_btsettl,\
