@@ -7,27 +7,14 @@ import numpy as np
 import os
 from breads.instruments.OSIRIS import OSIRIS
 from pathlib import Path
+import arguments as args
 
-# date = "210626"
 # star = "HD148352"
-# star = "SR21A"
+star = "AB_Aur"
 
-# date = "210626/first"
-# star = "SR3"
-
-# date = "210627"
-# star = "SR4"
-# star = "ROXs44"
-# star = "ROXs8"
-# star = "ROXs4"
-
-date = "210628"
-# star = "ROXs35A"
-star = "SR14"
-# star = "ROXs43B"
-# star = "SR9"
-
-fol = "09232021"
+date = args.dates[star] + "/1"
+fol = "20220410"
+# fol = "09232021"
 target = f"{fol}_{star}"
 
 throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/throughput/{fol}/"
@@ -45,7 +32,30 @@ Path(f"./plots/scatter/{fol}/").mkdir(parents=True, exist_ok=True)
 snrs = {}
 to_flux = 0
 t_err_rec = 0
-# num = 10
+num = 65
+
+if star in args.rotated_seqs.keys():
+    rotated_seqs = args.rotated_seqs[star]
+else:
+    rotated_seqs = []
+
+for fil in fr_files:
+    if "_out.fits" not in fil:
+        continue
+    print("setting size")
+    with pyfits.open(frames_dir + fil) as hdulist:
+        linparas = hdulist[3].data
+    nx, ny = linparas[0,:,:,0].shape
+    n = max(nx, ny)
+    pad = (n - min(nx, ny)) // 2
+    if nx > ny:
+        padding=((0,0),(pad,pad))
+    else:
+        padding=((pad,pad),(0,0))
+    # do not know if this works with odd size maps
+    to_flux = np.zeros((n, n))
+    t_err_rec = np.zeros((n, n))
+    break
 
 for fil in fr_files:
     if "_out.fits" not in fil:
@@ -53,22 +63,39 @@ for fil in fr_files:
         continue
     print("fr DOING", fil)
     with pyfits.open(frames_dir + fil) as hdulist:
-        out = hdulist[0].data
-    N_linpara = (out.shape[-1]-2)//2
-    snrs[fil] = out[0,:,:,3] / out[0,:,:,3+N_linpara]
-    to_flux += out[0,:,:,3] / (out[0,:,:,3+N_linpara])**2
-    t_err_rec += 1 / out[0,:,:,3+N_linpara] ** 2
-    # if len(snrs.values()) == num:
-    #     break
+        linparas = hdulist[3].data
+        linparas_err = hdulist[4].data
+    
+    flux = np.pad(linparas[0,:,:,0], padding, constant_values=np.nan)
+    err = np.pad(linparas_err[0,:,:,0], padding, constant_values=np.nan)
+    if fil[8:12] in rotated_seqs: # add not if other way TODO
+        # continue
+        print("rotated 90", fil)
+        flux = np.rot90(flux, 1, (0, 1))
+        err = np.rot90(err, 1, (0, 1))
+    f = flux / (err)**2
+    e = 1 / err ** 2
+    nan_locs = np.logical_or(np.isnan(f), np.isnan(e))
+    f[nan_locs] = 0
+    e[nan_locs] = 0
+    to_flux += f
+    t_err_rec += e
+    snrs[fil] = flux / err
+    if len(snrs.values()) == num:
+        break
 
 to_flux /= t_err_rec
 t_err = 1 / np.sqrt(t_err_rec)
 
 noise_calib = np.nanstd(list(snrs.values()), axis=0)
 snr = to_flux / t_err / noise_calib
+snr[np.isinf(snr)] = np.nan
+# snr[np.nanpercentile(snr, 5) > snr] = np.nan
+# snr[np.nanpercentile(snr, 95) < snr] = np.nan
+# print(np.nanpercentile(snr, 5), np.nanpercentile(snr, 95))
 
 # snr[snr < -50] = np.nan
-# snr[snr > 50] = np.nan
+snr[snr > 80] = np.nan
 
 print("frames combined: ", len(snrs.keys()))
 print(np.nanmax(to_flux))
@@ -80,9 +107,16 @@ print(detection_snr, (xD, yD), detection_flux)
 # exit()
 
 plt.figure()
-plt.imshow(snr, origin="lower")
+plt.imshow(snr, origin="lower")#, vmin=0, vmax=60)
+plt.plot(yD, xD, "rx")
 cbar = plt.colorbar()
-plt.show()
+# plt.show()
+
+plt.figure()
+plt.imshow(to_flux, origin="lower", vmin=0, vmax=0.01)
+cbar = plt.colorbar()
+
+# plt.show()
 
 flux_ratio = 1e-2
 threshold = 5
@@ -94,19 +128,81 @@ t_err_rec = 0
 
 for fil in th_files:
     if "_out.fits" not in fil:
+        continue
+    print("setting size")
+    with pyfits.open(throughput_dir + fil) as hdulist:
+        flux = hdulist[0].data
+    nx, ny = flux.shape
+    n = max(nx, ny)
+    pad = (n - min(nx, ny)) // 2
+    if nx > ny:
+        padding=((0,0),(pad,pad))
+    else:
+        padding=((pad,pad),(0,0))
+    # do not know if this works with odd size maps
+    t_flux = np.zeros((n, n))
+    t_err_rec = np.zeros((n, n))
+    break
+
+for fil in th_files:
+    if "_out.fits" not in fil:
         print("th skipping", fil)
         continue
     print("th DOING", fil)
     with pyfits.open(throughput_dir + fil) as hdulist:
         flux = hdulist[0].data
         noise = hdulist[1].data
-    fluxs[fil] = flux
-    noises[fil] = noise
-    t_flux += flux / (noise) ** 2
-    t_err_rec += 1 / noise ** 2
+    flux = np.pad(flux, padding, constant_values=np.nan)
+    err = np.pad(noise, padding, constant_values=np.nan)
+    # if fil[8:12] in rotated_seqs: # add not if other way TODO
+    #     # continue
+    #     print("rotated 90", fil)
+    #     flux = np.rot90(flux, 1, (0, 1))
+    #     err = np.rot90(err, 1, (0, 1))
+    fluxs[fil] = flux; noises[fil] = err
+    f = flux / (err)**2
+    e = 1 / err ** 2
+    nan_locs = np.logical_or(np.isnan(f), np.isnan(e))
+    f[nan_locs] = 0
+    e[nan_locs] = 0
+    t_flux += f
+    t_err_rec += e
+    if len(fluxs.values()) == num:
+        break
 
 t_flux /= t_err_rec
 t_err = 1 / np.sqrt(t_err_rec)
+
+plt.figure()
+plt.imshow(t_flux, origin="lower", vmin=0, vmax=0.01)
+cbar = plt.colorbar()
+
+plt.figure()
+plt.imshow(t_err, origin="lower")
+cbar = plt.colorbar()
+
+plt.figure()
+plt.imshow(noise_calib, origin="lower")
+cbar = plt.colorbar()
+
+plt.figure()
+plt.imshow((t_flux - to_flux)/flux_ratio, origin="lower")
+cbar = plt.colorbar()
+
+# plt.show()
+
+# padding assumes star is at center of every frame
+# nf, _ = t_flux.shape
+# ni, _ = to_flux.shape # supposed to be square
+# if nf > ni:
+#     padding = ((nf-ni)//2, (nf-ni)//2), ((nf-ni)//2, (nf-ni)//2)
+#     to_flux = np.pad(to_flux, padding, constant_values=np.nan) 
+#     noise_calib = np.pad(noise_calib, padding, constant_values=np.nan)
+# else:
+#     padding = ((ni-nf)//2, (ni-nf)//2), ((ni-nf)//2, (ni-nf)//2)
+#     t_flux = np.pad(t_flux, padding, constant_values=np.nan) 
+#     t_err = np.pad(t_err, padding, constant_values=np.nan) 
+
 
 throughput = (t_flux-to_flux) / flux_ratio
 
@@ -114,17 +210,26 @@ calibrated_err_combined = t_err * noise_calib / throughput
 
 print("frames combined: ", len(fluxs.keys()))
 
-assert(len(fluxs.keys()) == len(snrs.values())), "frames combined not same size"
+assert(len(fluxs.keys()) == len(snrs.values())), f"frames combined not same size, {len(fluxs.keys())}, {len(snrs.values())}"
 
-# plt.figure()
-# plt.imshow(throughput, origin="lower")
-# cbar = plt.colorbar()
-# cbar.set_label("throughput")
+plt.figure()
+plt.imshow(throughput, origin="lower", vmin=0, vmax=1)
+cbar = plt.colorbar()
+cbar.set_label("throughput")
 
-# plt.figure()
-# plt.imshow(calibrated_err_combined, origin="lower")
-# cbar = plt.colorbar()
-# cbar.set_label("noise")
+plt.figure()
+plt.imshow(calibrated_err_combined, origin="lower")
+cbar = plt.colorbar()
+cbar.set_label("noise")
+
+plt.figure()
+plt.imshow(np.log10(calibrated_err_combined), origin="lower")
+cbar = plt.colorbar()
+cbar.set_label("log10(noise)")
+
+
+plt.show ()
+exit()
 
 
 distances = []
@@ -159,8 +264,8 @@ for fil in psf_files:
             psf_dist += [np.sqrt((y - yS) ** 2 + (x - xS) ** 2) * 20]
             psf_profile += [data[x, y]]
     count += 1
-    # if count == num:
-    #     break
+    if count == num:
+        break
 distances = np.array(distances)
 
 plt.figure()
@@ -176,33 +281,33 @@ plt.xscale("log")
 plt.yscale("log")
 plt.legend()
 plt.grid()
-plt.savefig(out_dir+"scatter.png")
-plt.savefig(f"./plots/scatter/{fol}/scatter_{target}.png")
+# plt.savefig(out_dir+"scatter.png")
+# plt.savefig(f"./plots/scatter/{fol}/scatter_{target}.png")
 plt.show()
 
-hdulist = pyfits.HDUList()
-hdulist.append(pyfits.PrimaryHDU(data=calibrated_err_combined,
-    header=pyfits.Header(cards={"TYPE": "noise", "DIR": frames_dir})))
-hdulist.append(pyfits.PrimaryHDU(data=throughput,
-    header=pyfits.Header(cards={"TYPE": "throughput", "DIR": frames_dir})))
-hdulist.append(pyfits.PrimaryHDU(data=noise_calib,
-    header=pyfits.Header(cards={"TYPE": "noise_calib", "DIR": frames_dir})))
-hdulist.append(pyfits.PrimaryHDU(data=snr,
-    header=pyfits.Header(cards={"TYPE": "snr", "DIR": frames_dir})))
-hdulist.append(pyfits.PrimaryHDU(data=np.vstack((psf_dist, psf_profile)),
-    header=pyfits.Header(cards={"TYPE": "dist_psf", "DIR": frames_dir})))
-hdulist.append(pyfits.PrimaryHDU(data=np.vstack((distances, values)),
-    header=pyfits.Header(cards={"TYPE": "dist_noise", "DIR": frames_dir})))
+# hdulist = pyfits.HDUList()
+# hdulist.append(pyfits.PrimaryHDU(data=calibrated_err_combined,
+#     header=pyfits.Header(cards={"TYPE": "noise", "DIR": frames_dir})))
+# hdulist.append(pyfits.PrimaryHDU(data=throughput,
+#     header=pyfits.Header(cards={"TYPE": "throughput", "DIR": frames_dir})))
+# hdulist.append(pyfits.PrimaryHDU(data=noise_calib,
+#     header=pyfits.Header(cards={"TYPE": "noise_calib", "DIR": frames_dir})))
+# hdulist.append(pyfits.PrimaryHDU(data=snr,
+#     header=pyfits.Header(cards={"TYPE": "snr", "DIR": frames_dir})))
+# hdulist.append(pyfits.PrimaryHDU(data=np.vstack((psf_dist, psf_profile)),
+#     header=pyfits.Header(cards={"TYPE": "dist_psf", "DIR": frames_dir})))
+# hdulist.append(pyfits.PrimaryHDU(data=np.vstack((distances, values)),
+#     header=pyfits.Header(cards={"TYPE": "dist_noise", "DIR": frames_dir})))
 
                              
-try:
-    hdulist.writeto(out_dir+"scatter.fits", overwrite=True)
-except TypeError:
-    hdulist.writeto(out_dir+"scatter.fits", clobber=True)
-hdulist.close()
+# try:
+#     hdulist.writeto(out_dir+"scatter.fits", overwrite=True)
+# except TypeError:
+#     hdulist.writeto(out_dir+"scatter.fits", clobber=True)
+# hdulist.close()
 
-try:
-    hdulist.writeto(f"./plots/scatter/{fol}/scatter_{target}.fits", overwrite=True)
-except TypeError:
-    hdulist.writeto(f"./plots/scatter/{fol}/scatter_{target}.fits", clobber=True)
-hdulist.close()
+# try:
+#     hdulist.writeto(f"./plots/scatter/{fol}/scatter_{target}.fits", overwrite=True)
+# except TypeError:
+#     hdulist.writeto(f"./plots/scatter/{fol}/scatter_{target}.fits", clobber=True)
+# hdulist.close()

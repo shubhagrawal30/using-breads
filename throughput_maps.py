@@ -34,14 +34,14 @@ from breads.injection import inject_planet, read_planet_info
 import arguments
 
 numthreads = 16
-star = "HD148352"
+star = "AB_Aur"
 boxw = 3
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/20220406/"
+subdirectory = "throughput/20220410/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
@@ -67,28 +67,36 @@ else:
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
     try:
-        dataobj.data = deepcopy(dat)
         if filename[8:12] in rotated_seqs: # add not if other way TODO
             print("rotated 90", filename)
             rotate = True
+            y, x = location
+            y *= -1
         else:
             rotate = False
-        inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio, rotated_90=rotate)
+            x, y = location 
+        dataobj.set_noise()
+        log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[x],[y]],dataobj,fm_func,fm_paras,numthreads=numthreads)
+        fk_dataobj = deepcopy(dataobj)
+        
+        inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio, rotated_90=rotate)
+        fk_dataobj.set_noise()
+        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[x],[y]],fk_dataobj,fm_func,fm_paras,numthreads=None)
         print("SNR time", location)
-        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        return indices, linparas[0,0,0,0], linparas_err[0,0,0,0]
+        return indices, linparas[0,0,0,0], linparas_b[0,0,0,0], linparas_err[0,0,0,0]
     except Exception as e:
         print(e)
         print("FAILED", filename, location)
-        return indices, np.nan, np.nan
+        return indices, np.nan, np.nan, np.nan
 
 for filename in files[:]:
     rvs = np.array([0])
-    # ys = np.arange(-40, 40)
-    # xs = np.arange(-20, 20)
-    ys = np.arange(-15,15)
-    xs = np.arange(-7,7)
+    ys = np.arange(-40, 40)
+    xs = np.arange(-40, 40)
+    # ys = np.arange(-8,8)
+    # xs = np.arange(-5,5)
     flux = np.zeros((len(ys), len(xs))) * np.nan
+    flux_b = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
         print("skipping ", filename)
@@ -117,7 +125,7 @@ for filename in files[:]:
     star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
     stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
     total_flux = np.sum(stamp)
-    stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
+    # stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
 
 
     print("setting reference position")
@@ -156,7 +164,9 @@ for filename in files[:]:
     #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
     # fm_func = hc_splinefm
     fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux": np.nanmean(star_spectrum) * np.size(star_spectrum),
+                "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), 
+                "star_flux": np.nanmean(stamp) * np.size(stamp), 
+                #"star_flux": np.nanmean(star_spectrum) * np.size(star_spectrum),
                 "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp}
     print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
     fm_func = hc_mask_splinefm
@@ -176,10 +186,10 @@ for filename in files[:]:
          repeat(transmission), repeat(flux_ratio), repeat(dat), repeat(filename))
 
     with Pool() as tpool:
-        for indices, f, n in tpool.map(one_location, args):
-            print(indices, f, n)
+        for indices, f, fb, n in tpool.map(one_location, args):
+            print(indices, f, fb, n)
             j, i = indices
-            flux[j, i], noise[j, i] = f, n
+            flux[j, i], flux_b[j, i], noise[j, i] = f, fb, n
 
 
     # print("parsing output")
@@ -192,11 +202,19 @@ for filename in files[:]:
     cbar = plt.colorbar()
     cbar.set_label("SNR")
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
+
     plt.figure()
-    plt.imshow(flux,origin="lower")
+    plt.imshow(flux/flux_ratio,origin="lower")
     cbar = plt.colorbar()
-    cbar.set_label("flux")
+    cbar.set_label("flux/flux_ratio")
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
+
+    plt.figure()
+    plt.imshow((flux-flux_b)/flux_ratio,origin="lower")
+    cbar = plt.colorbar()
+    cbar.set_label("(flux-flux_b)/flux_ratio")
+    plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_tp.png")
+
     plt.figure()
     plt.imshow(noise,origin="lower")
     cbar = plt.colorbar()
@@ -207,6 +225,9 @@ for filename in files[:]:
     hdulist = pyfits.HDUList()
     hdulist.append(pyfits.PrimaryHDU(data=flux,
         header=pyfits.Header(cards={"TYPE": "flux", "FILE": filename, "PLANET": planet_btsettl,\
+                                        "FLUX": spec_file, "TRANS": tr_file})))    
+    hdulist.append(pyfits.PrimaryHDU(data=flux_b,
+        header=pyfits.Header(cards={"TYPE": "flux_b", "FILE": filename, "PLANET": planet_btsettl,\
                                         "FLUX": spec_file, "TRANS": tr_file})))    
     hdulist.append(pyfits.PrimaryHDU(data=noise,
         header=pyfits.Header(cards={"TYPE": "noise", "FILE": filename, "PLANET": planet_btsettl,\

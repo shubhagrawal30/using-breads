@@ -33,7 +33,7 @@ tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "planets/20220405/"
+subdirectory = "planets/20220410/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory).mkdir(parents=True, exist_ok=True)
@@ -75,7 +75,7 @@ for filename in files[:]:
         star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
         stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
         total_flux = np.sum(stamp)
-        stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
+        # stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
 
         spec_file = dir_name+"spectra/"+filename[:-5]+"_spectrum.fits"
         print("Reading spectrum file", spec_file)
@@ -139,8 +139,8 @@ for filename in files[:]:
         #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
         # fm_func = hc_splinefm
         fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux": np.nanmean(star_spectrum) * np.size(star_spectrum),
-                "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp}
+            "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux":np.nanmean(stamp) * np.size(stamp),
+            "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
         print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
         fm_func = hc_mask_splinefm
         # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
@@ -148,9 +148,11 @@ for filename in files[:]:
         # fm_func = hc_hpffm
         rvs = np.array([0])
         ys = np.arange(-40, 40)
-        xs = np.arange(-20, 20)
-
-        if True: # Example code to test the forward model
+        xs = np.arange(-40, 40)
+        # ys = np.arange(-12,12)
+        # xs = np.arange(-5,5)
+        
+        if False: # Example code to test the forward model
             nonlin_paras = [0, 0, 0] # rv (km/s), y (pix), x (pix)
             # nonlin_paras = [0, 0, 0] # rv (km/s), y (pix), x (pix)
             # d is the data vector a the specified location

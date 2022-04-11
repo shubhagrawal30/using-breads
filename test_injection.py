@@ -40,7 +40,7 @@ tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/20220406/"
+subdirectory = "throughput/20220406_test_inject/"
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
 
@@ -126,7 +126,7 @@ for filename in files[:]:
     # ys = [10]
     # xs = [10]
     ys = np.arange(-15,15)
-    xs = np.arange(-7,7)
+    xs = np.arange(-3,3)
     flux = np.zeros((len(ys), len(xs))) * np.nan
     noise = np.zeros((len(ys), len(xs))) * np.nan
     if ".fits" not in filename:
