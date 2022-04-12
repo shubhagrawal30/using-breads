@@ -189,7 +189,7 @@ plt.figure()
 plt.imshow((t_flux - to_flux)/flux_ratio, origin="lower")
 cbar = plt.colorbar()
 
-# plt.show()
+plt.show()
 
 # padding assumes star is at center of every frame
 # nf, _ = t_flux.shape
@@ -228,8 +228,8 @@ cbar = plt.colorbar()
 cbar.set_label("log10(noise)")
 
 
-plt.show ()
-exit()
+# plt.show()
+# exit()
 
 
 distances = []
