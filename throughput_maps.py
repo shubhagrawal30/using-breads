@@ -34,14 +34,14 @@ from breads.injection import inject_planet, read_planet_info
 import arguments
 
 numthreads = 16
-star = "AB_Aur"
+star = "HD148352"
 boxw = 3
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/20220410/"
+subdirectory = "throughput/20220412_test_strip/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
@@ -67,19 +67,20 @@ else:
 def one_location(args):
     dataobj, location, indices, planet_f, spec_file, transmission, flux_ratio, dat, filename = args
     try:
-        if filename[8:12] in rotated_seqs: # add not if other way TODO
-            print("rotated 90", filename)
-            rotate = True
-            y, x = location
-            y *= -1
-        else:
-            rotate = False
-            x, y = location 
+        # if filename[8:12] in rotated_seqs: # add not if other way TODO
+        #     print("rotated 90", filename)
+        #     rotate = True
+        #     y, x = location
+        #     y *= -1
+        # else:
+        #     rotate = False
+        #     x, y = location 
+        x, y = location 
         dataobj.set_noise()
         log_prob,log_prob_H0,rchi2,linparas_b,linparas_err = grid_search([rvs,[x],[y]],dataobj,fm_func,fm_paras,numthreads=numthreads)
         fk_dataobj = deepcopy(dataobj)
         
-        inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio, rotated_90=rotate)
+        inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio)#, rotated_90=rotate)
         fk_dataobj.set_noise()
         log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[x],[y]],fk_dataobj,fm_func,fm_paras,numthreads=None)
         print("SNR time", location)
@@ -92,7 +93,7 @@ def one_location(args):
 for filename in files[:]:
     rvs = np.array([0])
     ys = np.arange(-40, 40)
-    xs = np.arange(-40, 40)
+    xs = np.arange(0, 1)
     # ys = np.arange(-8,8)
     # xs = np.arange(-5,5)
     flux = np.zeros((len(ys), len(xs))) * np.nan
@@ -197,30 +198,46 @@ for filename in files[:]:
     #     for j, y in enumerate(ys):
     #         flux[j, i],noise[j, i] = outputs[i*len(ys)+j]
 
+    # plt.figure()
+    # plt.imshow(flux/noise,origin="lower")
+    # cbar = plt.colorbar()
+    # cbar.set_label("SNR")
+    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
+
+    # plt.figure()
+    # plt.imshow(flux/flux_ratio,origin="lower")
+    # cbar = plt.colorbar()
+    # cbar.set_label("flux/flux_ratio")
+    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
+
+    # plt.figure()
+    # plt.imshow((flux-flux_b)/flux_ratio,origin="lower")
+    # cbar = plt.colorbar()
+    # cbar.set_label("(flux-flux_b)/flux_ratio")
+    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_tp.png")
+
+    # plt.figure()
+    # plt.imshow(noise,origin="lower")
+    # cbar = plt.colorbar()
+    # cbar.set_label("noise")
+    # plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_noise.png")
+    # plt.close('all')
+
     plt.figure()
-    plt.imshow(flux/noise,origin="lower")
-    cbar = plt.colorbar()
-    cbar.set_label("SNR")
+    plt.plot(flux/noise)
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_snr.png")
 
     plt.figure()
-    plt.imshow(flux/flux_ratio,origin="lower")
-    cbar = plt.colorbar()
-    cbar.set_label("flux/flux_ratio")
+    plt.plot(flux/flux_ratio)
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_flux.png")
 
     plt.figure()
-    plt.imshow((flux-flux_b)/flux_ratio,origin="lower")
-    cbar = plt.colorbar()
-    cbar.set_label("(flux-flux_b)/flux_ratio")
+    plt.plot((flux-flux_b)/flux_ratio)
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_tp.png")
 
     plt.figure()
-    plt.imshow(noise,origin="lower")
-    cbar = plt.colorbar()
-    cbar.set_label("noise")
+    plt.plot(noise)
     plt.savefig(dir_name+subdirectory+"plots/"+filename[:-5]+"_noise.png")
-    plt.close('all')
 
     hdulist = pyfits.HDUList()
     hdulist.append(pyfits.PrimaryHDU(data=flux,
