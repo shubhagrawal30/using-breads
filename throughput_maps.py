@@ -14,6 +14,8 @@ import multiprocessing as mp
 from itertools import repeat
 from multiprocessing.pool import ThreadPool
 from concurrent.futures import ProcessPoolExecutor as Pool
+from copy import copy
+import scipy.linalg as la
 
 numthreads = 16
 
@@ -33,15 +35,18 @@ from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 import arguments
 
-numthreads = 16
-star = "HD148352"
+numthreads = 8
+star = "AB_Aur"
 boxw = 3
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
 sky_calib_file = arguments.sky_calib_file[star]
 files = os.listdir(dir_name)
 
-subdirectory = "throughput/20220412_test_strip/"
+res_numbasis = 5
+nodes = 5
+
+subdirectory = "throughput/20220415_test/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)
@@ -52,6 +57,7 @@ arr = np.genfromtxt(planet_btsettl, delimiter=[12, 14], dtype=np.float64,
                 converters={1: lambda x: float(x.decode("utf-8").replace('D', 'e'))})
 model_wvs = arr[:, 0] / 1e4
 model_spec = 10 ** (arr[:, 1] - 8)
+planet_model_set = True
 
 tr_files = os.listdir(tr_dir)
 if "plots" in tr_files:
@@ -118,20 +124,20 @@ for filename in files[:]:
         sig_x = hdulist[5].data
         sig_y = hdulist[6].data
 
+    print("setting reference position")
+    dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
+    print(dataobj.refpos)
+
     print("compute stellar PSF")
     data = dataobj.data
     nz, ny, nx = data.shape
     stamp_y, stamp_x = (boxw-1)//2, (boxw-1)//2
     img_mean = np.nanmedian(data, axis=0)
-    star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
+    # star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
+    star_y, star_x = int(np.round(dataobj.refpos[1])), int(np.round(dataobj.refpos[0]))
     stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
     total_flux = np.sum(stamp)
     # stamp = stamp/np.nansum(stamp,axis=(1,2))[:,None,None]
-
-
-    print("setting reference position")
-    dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
-    print(dataobj.refpos)
 
     print("setting noise")
     dataobj.set_noise()
@@ -149,48 +155,159 @@ for filename in files[:]:
         transmission = hdulist[0].data
 
     print("Removing bad pixels")
-    dataobj.remove_bad_pixels(med_spec=star_spectrum)
+    dataobj.remove_bad_pixels(med_spec=star_spectrum)        
+    dataobj.bad_pixels[0:5,:,:] = np.nan
+    dataobj.bad_pixels[312:318,:,:] = np.nan
+    dataobj.bad_pixels[343:349,:,:] = np.nan
+    dataobj.bad_pixels[396:402,:,:] = np.nan
+    dataobj.bad_pixels[418:422,:,:] = np.nan
+    dataobj.bad_pixels[446::,:,:] = np.nan
+
+    dataobj.bad_pixels[366:370,:,:] = np.nan
+    dataobj.bad_pixels[373:378,:,:] = np.nan
+    dataobj.bad_pixels[384:388,:,:] = np.nan
 
     dat = deepcopy(dataobj.data)
 
-    print("setting planet model")
-    minwv,maxwv= np.nanmin(dataobj.wavelengths),np.nanmax(dataobj.wavelengths)
-    crop_btsettl = np.where((model_wvs > minwv - 0.2) * (model_wvs < maxwv + 0.2))
-    model_wvs = model_wvs[crop_btsettl]
-    model_spec = model_spec[crop_btsettl]
-    model_broadspec = dataobj.broaden(model_wvs,model_spec)
-    planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
+    if planet_model_set:
+        print("setting planet model")
+        minwv,maxwv= np.nanmin(dataobj.wavelengths),np.nanmax(dataobj.wavelengths)
+        crop_btsettl = np.where((model_wvs > minwv - 0.2) * (model_wvs < maxwv + 0.2))
+        model_wvs = model_wvs[crop_btsettl]
+        model_spec = model_spec[crop_btsettl]
+        model_broadspec = dataobj.broaden(model_wvs,model_spec)
+        planet_f = interp1d(model_wvs, model_broadspec, bounds_error=False, fill_value=np.nan)
+        planet_model_set = False
 
-    # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-    #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
-    # fm_func = hc_splinefm
-    fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), 
-                "star_flux": np.nanmean(stamp) * np.size(stamp), 
-                #"star_flux": np.nanmean(star_spectrum) * np.size(star_spectrum),
-                "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp}
-    print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
-    fm_func = hc_mask_splinefm
-    # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-    #             "boxw":3,"psfw":1.5,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
-    # fm_func = hc_hpffm
-    flux_ratio = 1e-2
-    
-    args1 = []
-    args2 = []
-    for i, x in enumerate(xs):
-        for j, y in enumerate(ys):
-            args1 += [(y, x)]
-            args2 += [(j, i)]
-    
-    args = zip(repeat(dataobj), args1, args2, repeat(planet_f), repeat(spec_file),\
-         repeat(transmission), repeat(flux_ratio), repeat(dat), repeat(filename))
+    for fractional_fov in ["bottom", "top"]:
+        if res_numbasis != 0:
+            rvs = np.array([0])
+            # ys = np.arange(-11, 11)
+            # xs = np.arange(-6, 6)
+            if "bottom" in fractional_fov:
+                ys = np.arange(1, 11)
+            elif "top" in fractional_fov:
+                ys = np.arange(-10, 0)
+            elif "all" in fractional_fov:
+                ys = np.arange(-10, 11)
+            xs = np.arange(-5, 6)
 
-    with Pool() as tpool:
-        for indices, f, fb, n in tpool.map(one_location, args):
-            print(indices, f, fb, n)
-            j, i = indices
-            flux[j, i], flux_b[j, i], noise[j, i] = f, fb, n
+            # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+            #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
+            # fm_func = hc_splinefm
+            fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+                "boxw":boxw,"nodes":nodes,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux":total_flux,
+                "badpixfraction":0.75,"optimize_nodes":True, "stamp":stamp}
+            print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
+            fm_func = hc_mask_splinefm
+            # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+            #             "boxw":3,"psfw":1.5,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
+            # fm_func = hc_hpffm
+
+            out_res = np.zeros((nz,np.size(ys),np.size(xs))) + np.nan
+            log_prob_test = np.zeros((np.size(ys),np.size(xs))) + np.nan
+            for k in range(np.size(ys)):
+                for l in range(np.size(xs)):
+                    # badpix_vec = copy(dataobj.bad_pixels[:,int(np.round(dataobj.refpos[1] + ys[k])),int(np.round(dataobj.refpos[0] + xs[l]))])
+                    # badpix_vec[np.where(np.isnan(star_spectrum*transmission))] = np.nan
+                    # myres = np.zeros(np.size(np.where(np.isfinite(badpix_vec))[0]))+np.nan
+                    # log_prob_test[k,l],_,_,_,_ = fitfm([0, ys[k], xs[l]], dataobj, fm_func, fm_paras,computeH0 = False,bounds = None,
+                    #                                    residuals=myres)
+                    # out_res[np.where(np.isfinite(badpix_vec)),k,l] = myres
+                    w = (boxw-1)//2
+                    # w=0
+                    _y,_x=int(np.round(dataobj.refpos[1] + ys[k])),int(np.round(dataobj.refpos[0] + xs[l]))
+                    badpix_vec = copy(dataobj.bad_pixels[:,_y-w:_y+w+1,_x-w:_x+w+1])
+                    noise_vec = copy(dataobj.noise[:,_y-w:_y+w+1,_x-w:_x+w+1])
+                    data_vec = copy(dataobj.data[:,_y-w:_y+w+1,_x-w:_x+w+1])
+
+                    badpix_vec[np.where(np.isnan(star_spectrum*transmission))[0],:,:] = np.nan
+                    canvas_res = np.zeros(badpix_vec.shape)+np.nan
+                    myres = np.zeros(np.size(np.where(np.isfinite(badpix_vec))[0]))+np.nan
+                    log_prob_test[k,l],_,rchi2,_,_ = fitfm([0, ys[k], xs[l]], dataobj, fm_func, fm_paras,computeH0 = True,bounds = None,
+                                                    residuals_H0=myres,residuals=None)
+                    # print(rchi2)
+                    canvas_res[np.where(np.isfinite(badpix_vec))] = myres
+                    out_res[:,k,l] = np.nanmean(canvas_res,axis=(1,2))
+
+            X = np.reshape(out_res,(nz,np.size(ys)*np.size(xs))).T
+            X = X[np.where(np.nansum(X,axis=1)!=0)[0],:]
+            X = X/np.nanstd(X,axis=1)[:,None]
+            X[np.where(np.isnan(X))] = np.tile(np.nanmedian(X,axis=0)[None,:],(X.shape[0],1))[np.where(np.isnan(X))]
+            X[np.where(np.isnan(X))] = 0
+
+            # print(X.shape)
+            C = np.cov(X)
+            # print(C.shape)
+            # exit()
+            tot_basis = C.shape[0]
+            tmp_res_numbasis = np.clip(np.abs(res_numbasis) - 1, 0, tot_basis-1)  # clip values, for output consistency we'll keep duplicates
+            max_basis = np.max(tmp_res_numbasis) + 1  # maximum number of eigenvectors/KL basis we actually need to use/calculate
+            evals, evecs = la.eigh(C, eigvals=(tot_basis-max_basis, tot_basis-1))
+            check_nans = np.any(evals <= 0) # alternatively, check_nans = evals[0] <= 0
+            evals = np.copy(evals[::-1])
+            evecs = np.copy(evecs[:,::-1], order='F') #fortran order to improve memory caching in matrix multiplication
+            # calculate the KL basis vectors
+            kl_basis = np.dot(X.T, evecs)
+            res4model_kl = kl_basis * (1. / np.sqrt(evals * (nz- 1)))[None, :]  #multiply a value for each row
+            print(res4model_kl.shape)
+
+        else:
+            res4model_kl = None
+        
+
+
+        # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+        #         "boxw":3,"nodes":20,"psfw":1.2,"badpixfraction":0.75}
+        # fm_func = hc_splinefm
+        # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+        #             "boxw":boxw,"nodes":5,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), 
+        #             "star_flux": np.nanmean(stamp) * np.size(stamp), 
+        #             #"star_flux": np.nanmean(star_spectrum) * np.size(star_spectrum),
+        #             "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp}
+        # print("psfw:", np.nanmedian(sig_y), np.nanmedian(sig_x))
+        fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+                        "boxw":boxw,"nodes":nodes,"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux": total_flux,
+                        "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp,"KLmodes":res4model_kl,"fit_background":False,"recalc_noise":True}
+        fm_func = hc_mask_splinefm
+        # fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
+        #             "boxw":3,"psfw":1.5,"badpixfraction":0.75,"hpf_mode":"fft","cutoff":40}
+        # fm_func = hc_hpffm
+        flux_ratio = 1e-2
+        rvs = np.array([0])
+        ys = np.arange(-40, 40)
+        xs = np.arange(0, 1)
+        args1 = []
+        args2 = []
+        if "bottom" in fractional_fov:
+            for i, x in enumerate(xs):
+                for j, y in enumerate(ys):
+                    if y >= 0:
+                        continue
+                    args1 += [(y, x)]
+                    args2 += [(j, i)]
+        elif "top" in fractional_fov:
+            for i, x in enumerate(xs):
+                for j, y in enumerate(ys):
+                    if y < 0:
+                        continue
+                    args1 += [(y, x)]
+                    args2 += [(j, i)]
+        elif "all" in fractional_fov:
+            for i, x in enumerate(xs):
+                for j, y in enumerate(ys):
+                    args1 += [(y, x)]
+                    args2 += [(j, i)]
+
+        
+        args = zip(repeat(dataobj), args1, args2, repeat(planet_f), repeat(spec_file),\
+            repeat(transmission), repeat(flux_ratio), repeat(dat), repeat(filename))
+
+        with Pool() as tpool:
+            for indices, f, fb, n in tpool.map(one_location, args):
+                print(indices, f, fb, n)
+                j, i = indices
+                flux[j, i], flux_b[j, i], noise[j, i] = f, fb, n
 
 
     # print("parsing output")
