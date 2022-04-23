@@ -15,13 +15,13 @@ from scipy.stats import t
 from pathlib import Path
 from glob import glob
 
-star = "HD148352"
-# star = "AB_Aur"
+# star = "HD148352"
+star = sys.argv[1]
 
-date = args.dates[star]# + "/1"
-th_fol = "20220412_test_strip"
-fr_fol = "20220409"
-fol = "20220412"
+date = args.dates[star]# + "/first"
+th_fol = "20220417"
+fr_fol = "20220417"
+fol = "20220417"
 
 # fr_fol = "20220409"
 # fol = "20220409"
@@ -204,7 +204,7 @@ detection_flux_calib = t_flux[x, y]
 plt.figure()
 plt.title("SNR calibration map")
 vlim = np.max(noise_calib*ann_corr_map_1sig)
-plt.imshow(noise_calib*ann_corr_map_1sig, origin="lower", vmin=-vlim, vmax=vlim)
+plt.imshow(noise_calib*ann_corr_map_1sig, origin="lower", vmin=-vlim, vmax=vlim, cmap='cividis')
 cbar = plt.colorbar()
 plt.savefig(out_dir+"calibration_map_for_snr.png")
 # plt.savefig(f"./plots/combined/calibration_map_for_snr_{target}.png")
@@ -214,7 +214,7 @@ plt.savefig(out_dir+"calibration_map_for_snr.png")
 
 plt.figure()
 plt.title("1sig calib err map")
-plt.imshow(np.log10(t_err_1sig_calib), origin="lower")
+plt.imshow(np.log10(t_err_1sig_calib), origin="lower", cmap='cividis')
 plt.savefig(out_dir+"contrast_map_1sigma.png")
 # plt.savefig(f"./plots/combined/contrast_map_1sigma_{target}.png")
 
@@ -278,9 +278,9 @@ plt.legend()
 plt.savefig(out_dir+"contrast_detection_curves.png")
 
 plt.figure()
-snr_scale = 50
+snr_scale = 20
 # plt.imshow(snr, origin="lower")
-plt.imshow(snr0, origin="lower", vmin=-snr_scale, vmax=snr_scale)
+plt.imshow(snr0, origin="lower", vmin=-snr_scale, vmax=snr_scale, cmap='cividis')
 plt.plot(yS, xS, "rX")
 plt.plot(y, x, "b.")
 cbar = plt.colorbar()
@@ -291,7 +291,7 @@ plt.savefig(out_dir+"combined_snr_nocalib.png")
 
 snr_scale = 5
 plt.figure()
-plt.imshow(snr_calib, origin="lower", vmin=-snr_scale, vmax=snr_scale)
+plt.imshow(snr_calib, origin="lower", vmin=-snr_scale, vmax=snr_scale, cmap='cividis')
 plt.plot(yS, xS, "rX")
 plt.plot(y, x, "b.")
 cbar = plt.colorbar()

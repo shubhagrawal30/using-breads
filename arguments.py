@@ -89,15 +89,74 @@ dates[star] = "211018"
 dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
 tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/1/reduced/spectra/"
 sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a008002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a025", "a026", "a027", "a028"]
 
 star = "DS_Tau"
 dates[star] = "211018"
 dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
 tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/2/reduced/spectra/"
 sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a008002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a035", "a036", "a037", "a038"]
 
 star = "LkCa15"
 dates[star] = "211018"
 dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
 tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/3/reduced/spectra/"
 sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a008002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a052", "a053", "a054", "a055", "a056"]
+
+star = "LkCa19"
+dates[star] = "211019"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/1/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a005002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a016", "a017", "a018", "a019", "a020"]
+
+star = "HBC388"
+dates[star] = "211019"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/2/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a005002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a022", "a023", "a024", "a025", "a026", "a027"]
+
+star = "GM_Aur"
+dates[star] = "211019"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/2/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a005002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a038", "a039", "a040", "a041", "a042"]
+
+star = "HN_Tau"
+dates[star] = "211019"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/3/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a005002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a056", "a057", "a058", "a059", "a060", "a061", "a062", "a063", "a064"]
+
+star = "HBC354"
+dates[star] = "211020"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/1/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a003002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a056", "a057", "a058", "a059"]
+
+star = "HBC392"
+dates[star] = "211020"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/2/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a003002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a060", "a061", "a062", "a063", "a064", "a065"]
+
+star = "HBC372"
+dates[star] = "211020"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/2/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a003002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a080", "a081", "a082", "a083", "a084"]
+
+star = "HBC353"
+dates[star] = "211020"
+dir_name[star] = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{dates[star]}/reduced/"
+tr_dir[star] = f"/scr3/jruffio/data/osiris_survey/targets/AB_Aur/{dates[star]}/2/reduced/spectra/"
+sky_calib_file[star] = f"/scr3/jruffio/data/osiris_survey/targets/calibration_skys/{dates[star]}/reduced/s{dates[star]}_a003002_Kn3_020_calib.fits"
+rotated_seqs[star] = ["a098", "a099", "a100", "a101", "a102"]

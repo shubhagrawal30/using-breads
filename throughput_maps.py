@@ -36,7 +36,8 @@ from breads.injection import inject_planet, read_planet_info
 import arguments
 
 numthreads = 8
-star = "AB_Aur"
+# star = "AB_Aur"
+star = sys.argv[1]
 boxw = 3
 dir_name = arguments.dir_name[star]
 tr_dir = arguments.tr_dir[star]
@@ -46,7 +47,7 @@ files = os.listdir(dir_name)
 res_numbasis = 5
 nodes = 5
 
-subdirectory = "throughput/20220415_test/"
+subdirectory = "throughput/20220417/"
 
 print("making subdirectories")
 Path(dir_name+subdirectory+"plots/").mkdir(parents=True, exist_ok=True)

@@ -12,7 +12,7 @@ try:
 except:
     pass
 
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/DS_Tau/211018/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/HBC353/211020/reduced/"
 # dir_name = "/scr3/jruffio/shubh/test_odrp/orp_basicarp/"
 files = os.listdir(dir_name)
 
