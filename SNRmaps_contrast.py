@@ -18,7 +18,7 @@ from glob import glob
 # star = "HD148352"
 star = sys.argv[1]
 
-date = args.dates[star]# + "/first"
+date = args.dates[star]# + "/1"# + "/first"
 th_fol = "20220417"
 fr_fol = "20220417"
 fol = "20220417"
@@ -38,9 +38,11 @@ psf_files = os.listdir(psf_dir)
 flux_ratio = 1e-2
 threshold = 5
 
+main_out_dir = f"./plots/SNRmaps_contrast/{fol}/{star}/"
+
 print("making subdirectories")
 Path(out_dir).mkdir(parents=True, exist_ok=True)
-Path(f"./plots/scatter/{fol}/").mkdir(parents=True, exist_ok=True)
+Path(main_out_dir).mkdir(parents=True, exist_ok=True)
 
 snrs = {}
 num = 40
@@ -82,9 +84,9 @@ for filename in fr_files:
 # for y in range(n):
 #     for x in range(n):
 #         distances_pixels[y, x] += [np.sqrt((y - star_loc) ** 2 + (x - star_loc) ** 2)]
-xS, yS = n // 2,n // 2
-xvec = np.arange(0,n)-yS
-yvec = np.arange(0,n)-xS
+yS, xS = n // 2,n // 2
+xvec = np.arange(0,n)-xS
+yvec = np.arange(0,n)-yS
 x_grid,y_grid = np.meshgrid(xvec,yvec,indexing="xy")
 r_grid = np.sqrt(x_grid**2+y_grid**2)
 
@@ -165,16 +167,18 @@ t_flux = np.nansum(flux_arr/err_arr**2,axis=0)/np.nansum(1/err_arr**2,axis=0)
 t_err = 1/np.sqrt(np.nansum(1/err_arr**2,axis=0))
 snr0 = t_flux / t_err
 print("max SNR calib: ", np.nanmax(snr0))
-x, y = np.unravel_index(np.nanargmax(snr0), snr0.shape)
+y, x = np.unravel_index(np.nanargmax(snr0), snr0.shape)
 detection_dist = np.sqrt((y - yS) ** 2 + (x - xS) ** 2) * 0.02
 detection_snr = np.nanmax(snr0)
-detection_flux = t_flux[x, y]
+detection_flux = t_flux[y, x]
+
+print(detection_flux, np.nanmax(t_flux), t_err[y, x])
 
 noise_calib = np.nanstd(snr_arr, axis=0)
 noise_calib[np.where(noise_calib==0)] = np.nan
 
 
-x, y = np.unravel_index(np.nanargmax(snr0), snr0.shape)
+y, x = np.unravel_index(np.nanargmax(snr0), snr0.shape)
 print("relative position: ", (y - yS, x - xS))
 
 
@@ -194,12 +198,14 @@ smallsamp_1sig_ann_corr = np.array([t.ppf(0.841345,(2*np.pi*sep)/PSF_FWHM-1,scal
 ann_corr_map_1sig = interp1d(seppix_list,smallsamp_1sig_ann_corr,fill_value=np.nan,bounds_error=False)(r_grid)
 snr_calib = snr0/noise_calib/ann_corr_map_1sig
 print("max SNR calib: ", np.nanmax(snr_calib))
-x, y = np.unravel_index(np.nanargmax(snr_calib), snr_calib.shape)
-print("relative position: ", (y - yS, x - xS))
+y_calib, x_calib = np.unravel_index(np.nanargmax(snr_calib), snr_calib.shape)
+print("relative position: ", (y_calib - yS, x_calib - xS))
 t_err_1sig_calib = t_err*noise_calib*ann_corr_map_1sig
-detection_dist_calib = np.sqrt((y - yS) ** 2 + (x - xS) ** 2) * 0.02
+detection_dist_calib = np.sqrt((y_calib - yS) ** 2 + (x_calib - xS) ** 2) * 0.02
 detection_snr_calib = np.nanmax(snr_calib)
-detection_flux_calib = t_flux[x, y]
+detection_flux_calib = t_flux[y_calib, x_calib]
+
+print(detection_flux_calib, np.nanmax(t_flux), t_err[y_calib, x_calib])
 
 plt.figure()
 plt.title("SNR calibration map")
@@ -207,6 +213,7 @@ vlim = np.max(noise_calib*ann_corr_map_1sig)
 plt.imshow(noise_calib*ann_corr_map_1sig, origin="lower", vmin=-vlim, vmax=vlim, cmap='cividis')
 cbar = plt.colorbar()
 plt.savefig(out_dir+"calibration_map_for_snr.png")
+plt.savefig(main_out_dir+"calibration_map_for_snr.png")
 # plt.savefig(f"./plots/combined/calibration_map_for_snr_{target}.png")
 
 # snr[snr < -50] = np.nan
@@ -216,6 +223,7 @@ plt.figure()
 plt.title("1sig calib err map")
 plt.imshow(np.log10(t_err_1sig_calib), origin="lower", cmap='cividis')
 plt.savefig(out_dir+"contrast_map_1sigma.png")
+plt.savefig(main_out_dir+"contrast_map_1sigma.png")
 # plt.savefig(f"./plots/combined/contrast_map_1sigma_{target}.png")
 
 # psf_dist = []
@@ -258,6 +266,7 @@ plt.xscale("log")
 plt.yscale("log")
 plt.legend()
 plt.savefig(out_dir+"contrast_curves.png")
+plt.savefig(main_out_dir+"contrast_curves.png")
 
 plt.figure()
 plt.title("Sensitivity/contrast/detection curves")
@@ -276,28 +285,31 @@ plt.xscale("log")
 plt.yscale("log")
 plt.legend()
 plt.savefig(out_dir+"contrast_detection_curves.png")
+plt.savefig(main_out_dir+"contrast_detection_curves.png")
 
 plt.figure()
 snr_scale = 20
 # plt.imshow(snr, origin="lower")
 plt.imshow(snr0, origin="lower", vmin=-snr_scale, vmax=snr_scale, cmap='cividis')
-plt.plot(yS, xS, "rX")
-plt.plot(y, x, "b.")
+plt.plot(xS, yS, "rX")
+plt.plot(x, y, "b.")
 cbar = plt.colorbar()
 cbar.set_label("SNR")
 plt.title(f"{target}, {(y - yS, x - xS)}, {np.nanmax(snr0)}, {len(fr_files)} frames")
 plt.savefig(out_dir+"combined_snr_nocalib.png")
+plt.savefig(main_out_dir+"combined_snr_nocalib.png")
 # plt.savefig(f"./plots/combined/combined_snr_nocalib_{target}.png")
 
 snr_scale = 5
 plt.figure()
 plt.imshow(snr_calib, origin="lower", vmin=-snr_scale, vmax=snr_scale, cmap='cividis')
-plt.plot(yS, xS, "rX")
-plt.plot(y, x, "b.")
+plt.plot(xS, yS, "rX")
+plt.plot(x_calib, y_calib, "b.")
 cbar = plt.colorbar()
 cbar.set_label("SNR noise calib")
-plt.title(f"{target}, {(y - yS, x - xS)}, {np.nanmax(snr_calib)}, {len(fr_files)} frames")
+plt.title(f"{target}, {(y_calib - yS, x_calib - xS)}, {np.nanmax(snr_calib)}, {len(fr_files)} frames")
 plt.savefig(out_dir+"combined_snr_calib.png")
+plt.savefig(main_out_dir+"combined_snr_calib.png")
 # plt.savefig(f"./plots/combined/combined_snr_calib_{target}.png")
 
 text_font = 12
@@ -325,6 +337,7 @@ ax.tick_params(axis='y', labelsize=text_font,colors="black")
 ax.grid(which='major',axis="both",linestyle="-",color="grey")
 
 plt.savefig(out_dir+"snr_hist.png")
+plt.savefig(main_out_dir+"snr_hist.png")
 # plt.savefig(f"./plots/combined/snr_hist_{target}.png")
 
 hdulist = pyfits.HDUList()
@@ -334,6 +347,10 @@ try:
     hdulist.writeto(out_dir+"snr_map_calib.fits", overwrite=True)
 except TypeError:
     hdulist.writeto(out_dir+"snr_map_calib.fits", clobber=True)
+try:
+    hdulist.writeto(main_out_dir+"snr_map_calib.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(main_out_dir+"snr_map_calib.fits", clobber=True)
 hdulist.close()
 
 hdulist = pyfits.HDUList()
@@ -343,6 +360,10 @@ try:
     hdulist.writeto(out_dir+"flux_ratio_map_calib.fits", overwrite=True)
 except TypeError:
     hdulist.writeto(out_dir+"flux_ratio_map_calib.fits", clobber=True)
+try:
+    hdulist.writeto(main_out_dir+"flux_ratio_map_calib.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(main_out_dir+"flux_ratio_map_calib.fits", clobber=True)
 hdulist.close()
 
 hdulist = pyfits.HDUList()
@@ -352,6 +373,10 @@ try:
     hdulist.writeto(out_dir+"err_1sig_map_calib.fits", overwrite=True)
 except TypeError:
     hdulist.writeto(out_dir+"err_1sig_map_calib.fits", clobber=True)
+try:
+    hdulist.writeto(main_out_dir+"err_1sig_map_calib.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(main_out_dir+"err_1sig_map_calib.fits", clobber=True)
 hdulist.close()
 
 hdulist = pyfits.HDUList()
@@ -367,11 +392,17 @@ hdulist.append(pyfits.PrimaryHDU(data=r_grid,
                                  header=pyfits.Header(cards={"TYPE": "distance to center", "DIR": frames_dir})))
 hdulist.append(pyfits.PrimaryHDU(data=star_flux/star_flux[ny//2,nx//2],
                                  header=pyfits.Header(cards={"TYPE": "raw psf map", "DIR": frames_dir})))
+hdulist.append(pyfits.PrimaryHDU(data=t_err,
+                                 header=pyfits.Header(cards={"TYPE": "err map 1sig no calib", "DIR": frames_dir})))
 
 try:
     hdulist.writeto(out_dir+"alloutputs.fits", overwrite=True)
 except TypeError:
     hdulist.writeto(out_dir+"alloutputs.fits", clobber=True)
+try:
+    hdulist.writeto(main_out_dir+"alloutputs.fits", overwrite=True)
+except TypeError:
+    hdulist.writeto(main_out_dir+"alloutputs.fits", clobber=True)
 hdulist.close()
 
 plt.show()

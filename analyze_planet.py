@@ -11,6 +11,7 @@ import multiprocessing as mp
 import h5py
 from scipy.interpolate import RegularGridInterpolator
 import time
+import arguments as args
 
 from breads.instruments.OSIRIS import OSIRIS
 from breads.fit import log_prob
