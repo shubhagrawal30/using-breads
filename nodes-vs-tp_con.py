@@ -28,19 +28,19 @@ except:
 
 print("Importing breads")
 from breads.instruments.OSIRIS import OSIRIS
-from breads.search_planet import search_planet
+from breads.grid_search import grid_search
 from breads.fm.hc_splinefm import hc_splinefm
-from breads.fm.hc_no_splinefm import hc_no_splinefm
+from breads.fm.hc_mask_splinefm import hc_mask_splinefm
 from breads.fm.hc_hpffm import hc_hpffm
 from breads.injection import inject_planet, read_planet_info
 
-# star = "SR4"
+star = "SR4"
 # star = "ROXs44"
 # star = "HD148352"
 # star = "ROXs35A"
-star = str(sys.argv[1])
+# star = str(sys.argv[1])
 print(star)
-fol = "TP"
+fol = "20220512_1700K"
 target = f"{fol}_{star}"
 dir_name = arguments.dir_name[star]
 files = os.listdir(dir_name)
@@ -69,26 +69,29 @@ sky_calib_file = arguments.sky_calib_file[star]
 def one_location(args):
     dataobj, location, planet_f, spec_file, transmission, flux_ratio, dat, filename, fm_func, fm_paras = args
     try:
-        dataobj.data = deepcopy(dat)
-        out1 = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        inject_planet(dataobj, location, planet_f, spec_file, transmission, flux_ratio)
+        x, y = location 
+        dataobj.set_noise()
+        log_prob,log_prob_H0,rchi2,linparas_b,linparas_err_b = grid_search([rvs,[x],[y]],dataobj,fm_func,fm_paras,numthreads=numthreads)
+        fk_dataobj = deepcopy(dataobj)
+        inject_planet(fk_dataobj, location, planet_f, spec_file, transmission, flux_ratio)#, rotated_90=rotate)
+        fk_dataobj.set_noise()
+        log_prob,log_prob_H0,rchi2,linparas,linparas_err = grid_search([rvs,[x],[y]],fk_dataobj,fm_func,fm_paras,numthreads=None)
         print("SNR time", location)
-        out2 = search_planet([rvs,[location[0]],[location[1]]],dataobj,fm_func,fm_paras,numthreads=numthreads)
-        N_linpara = (out1.shape[-1]-2)//2
-        return out1[0,0,0,3], out1[0,0,0,3+N_linpara], out2[0,0,0,3], out2[0,0,0,3+N_linpara] 
+        return linparas_b[0,0,0,0], linparas_err_b[0,0,0,0], linparas[0,0,0,0], linparas_err[0,0,0,0]
     except Exception as e:
         print(e)
         print("FAILED", filename, location)
         return np.nan, np.nan, np.nan, np.nan
 
-sep = 100
+sep = 40
 num_angles = 16
 flux_ratio = 1e-2
 angles = np.linspace(0, 2*np.pi, num_angles+1)[:-1]
-num_nodes = np.arange(2, 41, 2)
+num_nodes = np.arange(1, 21, 1)
 rvs = np.array([0])
 ys = sep / 20 * np.cos(angles)
 xs = sep / 20 * np.sin(angles)
+boxw = 3
 
 b_flux, b_err_rec, t_flux, t_err_rec, bsnr = {}, {}, {}, {}, {}
 for num_node in num_nodes:
@@ -98,7 +101,7 @@ for num_node in num_nodes:
     t_err_rec[num_node] = np.zeros_like(angles)
     bsnr[num_node] = {}
 
-for filename in files[:]:
+for filename in files[1:12]:
     if ".fits" not in filename:
         print("SKIP", filename)
         continue
@@ -114,6 +117,8 @@ for filename in files[:]:
         star_spectrum = hdulist[2].data
         mu_x = hdulist[3].data
         mu_y = hdulist[4].data
+        sig_x = hdulist[5].data
+        sig_y = hdulist[6].data
 
     print("setting reference position")
     dataobj.set_reference_position((np.nanmedian(mu_y), np.nanmedian(mu_x)))
@@ -140,11 +145,21 @@ for filename in files[:]:
     print("setting noise")
     dataobj.set_noise()
 
+    print("compute stellar PSF")
+    data = dataobj.data
+    nz, ny, nx = data.shape
+    stamp_y, stamp_x = (boxw-1)//2, (boxw-1)//2
+    img_mean = np.nanmedian(data, axis=0)
+    # star_y, star_x = np.unravel_index(np.nanargmax(img_mean), img_mean.shape)
+    star_y, star_x = int(np.round(dataobj.refpos[1])), int(np.round(dataobj.refpos[0]))
+    stamp = data[:, star_y-stamp_y:star_y+stamp_y+1, star_x-stamp_x:star_x+stamp_x+1]
+    total_flux = np.sum(stamp)
+
     for num_node in num_nodes:
-        fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":star_spectrum,
-                "boxw":3,"nodes":int(num_node),"psfw":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
-                "badpixfraction":0.75,"optimize_nodes":True}
-        fm_func = hc_no_splinefm
+        fm_paras = {"planet_f":planet_f,"transmission":transmission,"star_spectrum":None, "star_loc":(np.nanmedian(mu_y), np.nanmedian(mu_x)),
+                        "boxw":boxw,"nodes":int(num_node),"psfw":(np.nanmedian(sig_y), np.nanmedian(sig_x)), "star_flux": total_flux,
+                        "badpixfraction":0.75,"optimize_nodes":True, "stamp": stamp,"fit_background":False,"recalc_noise":True}
+        fm_func = hc_mask_splinefm
 
         args = zip(repeat(dataobj), list(zip(ys, xs)), repeat(planet_f), repeat(spec_file),\
             repeat(transmission), repeat(flux_ratio), repeat(dat), repeat(filename), repeat(fm_func), repeat(fm_paras))

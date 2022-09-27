@@ -11,8 +11,9 @@ except:
 
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210626/reduced/"
 # dir_name = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210627/reduced/"
-# dir_name = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/"
-dir_name = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/211020/reduced/"
+dir_name = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/210628/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/211020/reduced/"
+# dir_name = "/scr3/jruffio/data/osiris_survey/targets/calibration_skys/220625/reduced/"
 
 files = os.listdir(dir_name)
 

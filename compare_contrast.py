@@ -5,8 +5,6 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import arguments as args
-import os
 
 def line_from_scatter(xvals, yvals, num, equal_bins=False, log_space=True):
     if equal_bins:
@@ -57,6 +55,8 @@ def line_from_scatter(xvals, yvals, num, equal_bins=False, log_space=True):
 
 
 
+out_fold = "/scr3/jruffio/shubh/using-breads/plots/paper/contrast/"
+
 fig = plt.figure(1,figsize=(6,4))
 # if 0:
     # targets = ["HD148352", "SR3", "SR14", "ROXs44", "ROXs43B", "SR9", "SR4", "ROXs8", "ROXs35A", "SR21A", "ROXs4"]
@@ -104,17 +104,12 @@ fig = plt.figure(1,figsize=(6,4))
     #     else:
     #         plt.plot(rxs/1000, rys, alpha=1, color=cmap.to_rgba(Kmag))
 
-fold = "/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/20220512_1700K/"
-targets = ["CW_Tau", "HD148352", "ROXs8"]#["AB_Aur"]#,"SR21A","SR9"]
-# targets = os.listdir(fold)
-dates = map(lambda x: args.dates[x], targets)
-# ["211018", "210626", "211019"]#["211018"]#,"210626","210628"]
+targets = ["LkCa15", "SR3", "AB_Aur", "ROXs43B"]#["AB_Aur"]#,"SR21A","SR9"]
+# dates = [""]#["211018"]#,"210626","210628"]
 # fol = "20220417"
-# fol = "20220508_jb_combined_1700K_10nodes_KL5"
 fol = "20220512_1700K"
 threshold_snr = 5
-bins = 50
-for tid,(target,target_date) in enumerate(zip(targets,dates)):
+for tid,target in enumerate(targets):
     # if target not in targets_to_plot:
     #     continue
     print(target)
@@ -134,19 +129,24 @@ for tid,(target,target_date) in enumerate(zip(targets,dates)):
 #                                  header=pyfits.Header(cards={"TYPE": "distance to center", "DIR": frames_dir})))
 # hdulist.append(pyfits.PrimaryHDU(data=star_flux/star_flux[ny//2,nx//2],
 #                                  header=pyfits.Header(cards={"TYPE": "raw psf map", "DIR": frames_dir})))
-    if "AB_Aur" in target:
-        # with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/1/reduced/contrast/{fol}/alloutputs.fits") as hdulist:
-        with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/1/reduced/planets/{fol}/alloutputs.fits") as hdulist:
-            calibrated_err_combined = hdulist[2].data
-            err_combined = hdulist[2].data*hdulist[0].data/hdulist[3].data
-            r_grid = hdulist[4].data
-    else:
-        with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/reduced/contrast/{fol}/alloutputs.fits") as hdulist:
-        # with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/reduced/planets/{fol}/alloutputs.fits") as hdulist:
-            calibrated_err_combined = hdulist[2].data
-            err_combined = hdulist[2].data*hdulist[0].data/hdulist[3].data
-            r_grid = hdulist[4].data
+    # if "AB_Aur" in target:
+    #     # with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/1/reduced/contrast/{fol}/alloutputs.fits") as hdulist:
+    #     with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/1/reduced/planets/{fol}/alloutputs.fits") as hdulist:
+    #         calibrated_err_combined = hdulist[2].data
+    #         err_combined = hdulist[2].data*hdulist[0].data/hdulist[3].data
+    #         r_grid = hdulist[4].data
+    # else:
+    #     with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/reduced/contrast/{fol}/alloutputs.fits") as hdulist:
+    #     # with pyfits.open(f"/scr3/jruffio/data/osiris_survey/targets/{target}/{target_date}/reduced/planets/{fol}/alloutputs.fits") as hdulist:
+    #         calibrated_err_combined = hdulist[2].data
+    #         err_combined = hdulist[2].data*hdulist[0].data/hdulist[3].data
+    #         r_grid = hdulist[4].data
+    with pyfits.open(f"/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/20220512_1700K/{target}/alloutputs.fits") as hdulist:
+        calibrated_err_combined = hdulist[2].data
+        err_combined = hdulist[2].data*hdulist[0].data/hdulist[3].data
+        r_grid = hdulist[4].data
 
+    bins = 50
     rxs, rys, xerrs, yerrs = line_from_scatter(np.ravel(r_grid), np.ravel(calibrated_err_combined), bins, True)
     rxs_nocalib, rys_nocalib, _, _ = line_from_scatter(np.ravel(r_grid), np.ravel(err_combined), bins, True)
     rys[np.where(rxs>0.6/0.02)] = np.nan
@@ -154,9 +154,9 @@ for tid,(target,target_date) in enumerate(zip(targets,dates)):
     
     # if True:
     # plt.plot(rxs*0.02, threshold_snr*rys, alpha=1,linewidth=3,label=f"Keck/OSIRIS: {target}", marker="1", linestyle="--")
-    plt.plot(rxs_nocalib*0.02, threshold_snr*rys_nocalib, alpha=1,linewidth=3,label=f"Keck/OSIRIS: {target}", marker="1", linestyle="--")
+    # plt.plot(rxs_nocalib*0.02, threshold_snr*rys_nocalib, alpha=1,linewidth=3,label=f"Keck/OSIRIS: {target}", marker="1", linestyle="--")
     # if tid == 0:
-    #     plt.plot(rxs*0.02, threshold_snr*rys, alpha=1,linewidth=1,label=f"Keck/OSIRIS: {target}")
+    plt.plot(rxs*0.02, threshold_snr*rys, alpha=1,linewidth=3,label=f"OSIRIS (Agrawal S. et al.): {target}")
         # plt.plot(rxs*0.02, threshold_snr*rys, alpha=1, color="#ff9900",linewidth=3,label=f"OSIRIS (Agrawal S. et al.)")
         # plt.plot(rxs_nocalib*0.02, threshold_snr*rys_nocalib, alpha=1, linestyle="--",linewidth=1,color="grey",label="OSIRIS Goal")
     # else:
@@ -187,7 +187,7 @@ for fid,filename in enumerate(GPIcont_list):
     print(np.logspace(-2,0,100))
     gpicont_list.append(interp1d(gpiseps,gpicont*np.sqrt(tint/30.), bounds_error=False, fill_value=np.nan)(np.logspace(-2,0,100)))
     if fid == 2:
-        plt.plot(gpiseps,gpicont*np.sqrt(tint/30.),linestyle = ":",color="#ff99cc",linewidth=2,label="GPI (scaled to 30 min exposures)")
+        plt.plot(gpiseps,gpicont*np.sqrt(tint/30.),linestyle = ":",color="#ff99cc",linewidth=3,label="GPI (scaled to 30 min exposures)")
     else:
         pass
         # plt.plot(gpiseps,gpicont*np.sqrt(tint/30.),linestyle = "--",linewidth=2,label="{0}".format(fid))#,color="#6600ff"
@@ -212,7 +212,7 @@ idps=np.array([0.3128491620111731, 6.870838881491345,
 6.980446927374302, 13.262316910785618])
 idpsseps,idpscont = idps[0::2],10**(idps[1::2]/-2.5)
 
-plt.plot(idpsseps,idpscont,linestyle = ":",color="#6600ff",linewidth=2,label="IPDS median sensitivity")
+plt.plot(idpsseps,idpscont,linestyle = ":",color="#6600ff",linewidth=3,label="IPDS median sensitivity")
 
 NRM = np.array([0.006164383561643824, 0.9999999999999785,
 0.00650684931506848, 1.6113537117903747,
@@ -240,7 +240,7 @@ NRM = np.array([0.006164383561643824, 0.9999999999999785,
 0.20102739726027397, 7.0727802037845775])
 nrmseps,nrmcont = NRM[0::2],10**(NRM[1::2]/-2.5)
 
-plt.plot(nrmseps,nrmcont,linestyle = ":",color="red",linewidth=2,label="NRM Sallum et al. 2019")
+plt.plot(nrmseps,nrmcont,linestyle = "-.",color="silver",linewidth=3,label="NRM Sallum et al. 2019")
 
 NRM_Cheetham = np.array([[39.70177073625349, 3.643028846153846],
 [36.980428704566634, 3.6850961538461537],
@@ -258,27 +258,29 @@ nrmseps,nrmcont = NRM_Cheetham[:,0]/40*0.3,10**(NRM_Cheetham[:,1]/-2.5)
 
 # plt.plot(nrmseps,nrmcont,linestyle = "--",color="black",linewidth=3,label="NRM Cheetham et al. 2015")
 
-
 plt.xscale('log')
 plt.yscale('log')
-plt.xticks(fontsize= 12)
-plt.yticks(fontsize= 12)
+# plt.xticks(fontsize= 12)
+# plt.yticks(fontsize= 12)
 plt.ylim([1e-5,1e-2])
 plt.xlim([1e-2,1e0])
 plt.grid()
 plt.tight_layout()
 # cbar = fig.colorbar(cmap)
 # cbar.set_label('Stellar K mag', fontsize=12)
-plt.legend(loc="lower left", fontsize=10)
+plt.legend(loc="lower left", fontsize=8)
 plt.xlabel("separation (arcseconds)")
-plt.ylabel("contrast")
+plt.ylabel("flux ratio")
 # plt.legend()
 ytick_locations = [1e-5, 3e-5, 5e-5, 1e-4, 3e-4, 5e-4, 1e-3, 3e-3, 5e-3, 1e-2]
 xtick_locations = [1e-2, 3e-2, 5e-2, 1e-1, 3e-1, 5e-1, 1e0]
 plt.xticks(ticks=xtick_locations, labels=xtick_locations)
 plt.yticks(ticks=ytick_locations, labels=ytick_locations)
 plt.title("Sensitivity Curves")
-plt.savefig("/scr3/jruffio/shubh/using-breads/plots/thesis/compare_contrast/compare_contrast_potential.png", bbox_inches='tight')
+# plt.savefig("/scr3/jruffio/shubh/using-breads/plots/thesis/compare_contrast/compare_contrast_potential.png", bbox_inches='tight')
 
-# plt.show()
+plt.savefig(out_fold+f"compare_contrast.png", bbox_inches='tight')
+plt.savefig(out_fold+f"compare_contrast.pdf", bbox_inches='tight')
+plt.savefig(out_fold+f"compare_contrast.eps", bbox_inches='tight')
 
+plt.close()
