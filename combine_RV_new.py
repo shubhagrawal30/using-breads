@@ -25,13 +25,13 @@ from glob import glob
 # star = "HBC372"
 # star = "HBC388"
 # star = "HBC392"
-# star = "HD148352"
+star = "HD148352"
 # star = "HN_Tau"
 # star = "LkCa15"
 # star = "LkCa19"
 # star = "ROXs4"
 # star = "ROXs8"
-star = "ROXs35A"
+# star = "ROXs35A"
 # star = "ROXs43B"
 # star = "ROXs44"
 # star = "SR3"
@@ -41,7 +41,9 @@ star = "ROXs35A"
 # star = "ROXs8"
 # star = sys.argv[1]
 
-date = args.dates[star]# + "/1"# + "/first"
+# dates = ["210626/first", "210626/second", "210627/first", "210627/second", "210628/first", "210628/second"]
+
+dates = [args.dates[star]]# + "/1"# + "/first"
 th_fol = "20220512_1700K"
 fr_fol = "20220512_1700K"
 # fr_fol = "20220512"
@@ -53,21 +55,22 @@ rvs = np.linspace(-4000,4000,41)
 # fol = "20220409"
 target = f"{fr_fol}_{th_fol}_{star}"
 
-throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/throughput/{th_fol}/"
-frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/planets/{fr_fol}/"
-out_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/contrast/{fol}/"
-psf_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/"
-fr_files = os.listdir(frames_dir)
-th_files = os.listdir(throughput_dir)
-psf_files = os.listdir(psf_dir)
+fr_files, th_files, psf_files = [], [], []
 
-flux_ratio = 1e-2
-threshold = 5
+for date in dates:
+    throughput_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/throughput/{th_fol}/"
+    frames_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/planets/{fr_fol}/"
+    psf_dir = f"/scr3/jruffio/data/osiris_survey/targets/{star}/{date}/reduced/"
+    fr_files += os.listdir(frames_dir)
+    th_files += os.listdir(throughput_dir)
+    psf_files += os.listdir(psf_dir)
 
-main_out_dir = f"./plots/thesis/roxs35a/"
+# flux_ratio = 1e-2
+# threshold = 5
+
+main_out_dir = f"./plots/paper/hd148352/"
 
 print("making subdirectories")
-Path(out_dir).mkdir(parents=True, exist_ok=True)
 Path(main_out_dir).mkdir(parents=True, exist_ok=True)
 
 snrs = {}
@@ -115,7 +118,8 @@ xvec = np.arange(0,n)-xS
 yvec = np.arange(0,n)-yS
 x_grid,y_grid = np.meshgrid(xvec,yvec,indexing="xy")
 r_grid = np.sqrt(x_grid**2+y_grid**2)
-planety, planetx = 40+1,20-4
+# planety, planetx = 40+1,40-4
+planety, planetx = 40-4,20-4
 
 for planety in [planety]:#[40-5,40-4,40-3]:
     for planetx in [planetx]:#[20-5,20-4,20-3]:
@@ -210,7 +214,7 @@ for planety in [planety]:#[40-5,40-4,40-3]:
         # smallsamp_5sig_ann_corr = np.array([t.ppf(0.99999971334,(2*np.pi*sep)/PSF_FWHM-1,scale=std)*np.sqrt(1+1./((2*np.pi*sep)/PSF_FWHM)) for sep,std in zip(seppix_list,ann_corr)])
 
         ann_corr_map_1sig = interp1d(seppix_list,smallsamp_1sig_ann_corr,fill_value=np.nan,bounds_error=False)(r_grid)
-        snr_calib = snr0/noise_calib/ann_corr_map_1sig[planety, 20+planetx]
+        snr_calib = snr0/noise_calib#/ann_corr_map_1sig[planety, 20+planetx]
         
         hdulist = pyfits.HDUList()
         hdulist.append(pyfits.PrimaryHDU(data=snr_calib,
@@ -219,9 +223,9 @@ for planety in [planety]:#[40-5,40-4,40-3]:
                                         header=pyfits.Header(cards={"TYPE": "snr0", "DIR": frames_dir})))
 
         try:
-            hdulist.writeto("./plots/thesis/roxs35a/rvccf.fits", overwrite=True)
+            hdulist.writeto(main_out_dir+"rvccf.fits", overwrite=True)
         except TypeError:
-            hdulist.writeto("./plots/thesis/roxs35a/rvccf.fits", clobber=True)
+            hdulist.writeto(main_out_dir+"rvccf.fits", clobber=True)
         # break
 
         plt.figure()
@@ -230,7 +234,8 @@ for planety in [planety]:#[40-5,40-4,40-3]:
         plt.plot(snr_calib, label = "calib")
         plt.legend()
         plt.grid()
-        plt.show()
+        # plt.show()
         # plt.savefig("./plots/thesis/hd148352/rvccf.png")
 
-plt.show()
+# plt.show()
+plt.close()

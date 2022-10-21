@@ -279,8 +279,10 @@ plt.yticks(ticks=ytick_locations, labels=ytick_locations)
 plt.title("Sensitivity Curves")
 # plt.savefig("/scr3/jruffio/shubh/using-breads/plots/thesis/compare_contrast/compare_contrast_potential.png", bbox_inches='tight')
 
-plt.savefig(out_fold+f"compare_contrast.png", bbox_inches='tight')
-plt.savefig(out_fold+f"compare_contrast.pdf", bbox_inches='tight')
-plt.savefig(out_fold+f"compare_contrast.eps", bbox_inches='tight')
+# plt.savefig(out_fold+f"compare_contrast.png", bbox_inches='tight')
+# plt.savefig(out_fold+f"compare_contrast.pdf", bbox_inches='tight')
+# plt.savefig(out_fold+f"compare_contrast.eps", bbox_inches='tight')
+
+plt.show()
 
 plt.close()
