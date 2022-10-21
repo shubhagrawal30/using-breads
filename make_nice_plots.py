@@ -8,6 +8,28 @@ import arguments as args
 from glob import glob
 import corner
 import matplotlib.gridspec as gridspec
+from scipy.signal import correlate2d
+import matplotlib.style as style
+style.use('seaborn-colorblind')
+
+# plt.rcParams.update({'font.size': 20})
+plt.rcParams.update({'font.size': 18})
+
+mind, lsind = 0, 0
+
+def get_marker():
+    global mind
+    markers = [".", "v", "^", "P", "X", "*", "d"]
+    val = markers[mind]
+    mind = (mind+1) % len(markers)
+    return val
+def get_ls():
+    global lsind
+    linestyles = ["solid", "dashed", "dotted", "dashdot", (0, (3, 2, 1, 2, 1, 2))]
+    val = linestyles[lsind]
+    lsind = (lsind+1) % len(linestyles)
+    return val
+
 
 def line_from_scatter(xvals, yvals, num, equal_bins=False, log_space=True):
     if equal_bins:
@@ -195,35 +217,103 @@ def get_combined_snr_hist_calib(fold, out_fold):
     print("making subdirectories")
     Path(out_fold).mkdir(parents=True, exist_ok=True)
     plt.figure()
-    plt.title("Residual signal-to-noise ratio", fontsize=text_font,color="black")
+    plt.title("Residual signal-to-noise ratio",color="black")
+    Hs, oph, tau = {}, {}, {}
+    ophi_stars = ["HD148352", "ROXs35A", "ROXs4", "ROXs8", "ROXs44A", "SR4", "SR14", "ROXs43A", "SR9", "SR3", "SR21A"]
     bins = np.arange(-6,6,0.25)
     bin_centers = np.array([(r1+r2)/2. for r1,r2 in zip(bins[0:-1],bins[1:])])
     for ind,target in enumerate(target_list):
-        print(target)
+        if ind == 7:
+            plt.plot([],[],color=(0,0,0,0), label=" ")
+        print(ind, target)
         folder = fold + target
+        if target == "SR3":
+            folder = folder.replace("20220512_1700K", "20220512_1700K_redo")
         with pyfits.open(folder + "/alloutputs.fits") as hdulist:
             snr_calib = hdulist[0].data
+            ny, nx = snr_calib.shape
+            stary, starx, margin = ny//2, nx//2, 2
+            snr_calib[stary-margin:stary+margin+1, starx-margin:starx+margin+1] = np.nan
+            snr_calib[np.where(np.isnan(correlate2d(snr_calib,np.ones((3,3)),mode="same")))] = np.nan
+        if target == "HD148352":
+            detecty, detectx, margin = -4, -4, 8
+            snr_calib[stary+detecty-margin:stary+detecty+margin+1, starx+detectx-margin:starx+detectx+margin+1] = np.nan
+        # if target == "SR3":
+        #     # detecty, detectx, margin = 1, -4, 3
+        #     # snr_calib[stary+detecty-margin:stary+detecty+margin+1, starx+detectx-margin:starx+detectx+margin+1] = np.nan
+        #     pass
+        # else:
+        #     continue
         if target == "SR9":
+            detecty, detectx, margin = 34, 0, 13
+            snr_calib[stary+detecty-margin:stary+detecty+margin+1, starx+detectx-margin:starx+detectx+margin+1] = np.nan
             continue
+        if target == "ROXs35A":
+            snr_calib[snr_calib>10] = np.nan
         H,xedges = np.histogram(snr_calib,bins = bins,density=1)
+        Hs[target] = H
+        if target in ophi_stars:
+            oph[target] = H
+        else:
+            tau[target] = H
         plt.plot(bin_centers,H,"-.",linewidth=0.8,label=f"{target}",marker=["^", ".", "*"][ind%3],alpha=0.5)
+    # plt.plot(bin_centers, np.nanmean(list(Hs.values()), axis = 0), "-.")
     plt.plot(bin_centers,1./(np.sqrt(2*np.pi))*np.exp(-(bin_centers**2)/2.),linestyle = "--",linewidth = 2,color="grey")
-    plt.xlim([np.nanmin(bins),np.nanmax(bins)])
-    plt.ylim([1e-4,2])
+    plt.xlim([np.nanmin(bins),6])
+    plt.ylim([1e-4,1])
     ax = plt.gca()
     ax.set_yscale('log')
-    plt.xlabel("SNR", fontsize=text_font,color="black")
-    plt.ylabel("PDF", fontsize=text_font,color="black")
-    ax.tick_params(axis='x', labelsize=text_font,colors="black")
-    ax.tick_params(axis='y', labelsize=text_font,colors="black")
+    plt.xlabel("SNR",color="black")
+    plt.ylabel("PDF",color="black")
+    ax.tick_params(axis='x',colors="black")
+    ax.tick_params(axis='y',colors="black")
     # [i.set_color("white") for i in iter(ax.spines.values())]
     # ax.set_facecolor("black")
     ax.grid()
-    ax.legend(loc='center left', ncol = 1, bbox_to_anchor=(1, 0, 1, 1))
-    # plt.legend(loc='upper center', bbox_to_anchor=(-0.1,-0.35,1.1,0.2), ncol=4, mode='expand', fontsize='x-small')    
-    plt.savefig(out_fold+f"combined_snr_hist_calib.png", bbox_inches='tight')
-    plt.savefig(out_fold+f"combined_snr_hist_calib.pdf", bbox_inches='tight')
-    plt.savefig(out_fold+f"combined_snr_hist_calib.eps", bbox_inches='tight')
+    # ax.legend(loc='center left', ncol = 1, bbox_to_anchor=(1, 0, 1, 1))
+    plt.legend(loc='upper center', bbox_to_anchor=(-0.15,-0.37,1.2,0.2), ncol=3, fontsize=16, mode="expand")    
+    plt.savefig(out_fold+f"combined_snr_hist.png", bbox_inches='tight')
+    plt.savefig(out_fold+f"combined_snr_hist.pdf", bbox_inches='tight')
+    plt.savefig(out_fold+f"combined_snr_hist.eps", bbox_inches='tight')
+    # plt.show()
+
+    plt.figure()
+    plt.plot(bin_centers, np.nanmean(list(oph.values()), axis = 0), ":", marker="^", alpha=0.5,label="Ophiuchus")
+    plt.plot(bin_centers, np.nanmean(list(tau.values()), axis = 0), ":", marker="*", alpha=0.5,label="Taurus")
+    plt.plot(bin_centers, np.nanmean(list(Hs.values()), axis = 0), "--", linewidth=1.5, marker="x", alpha=0.5,label="survey")
+    plt.plot(bin_centers,1./(np.sqrt(2*np.pi))*np.exp(-(bin_centers**2)/2.),linestyle = "--",linewidth = 2,color="grey")
+    Htotal = np.nanmean(list(Hs.values()), axis = 0)
+    lower = 1
+    Htotal = Htotal[bin_centers>lower]#[:-1]
+    bin_centers = bin_centers[bin_centers>lower]#[:-1]
+    bin_centers = bin_centers[Htotal!=0]
+    Htotal = Htotal[Htotal!=0]
+    print(Htotal, bin_centers)
+    plt.plot(bin_centers, Htotal, linewidth=2, label="tail (survey)")
+    ax = plt.gca()
+    ax.set_yscale('log')
+    plt.xlabel("SNR", color="black")
+    plt.ylabel("PDF", color="black")
+    ax.tick_params(axis='x', colors="black")
+    ax.tick_params(axis='y', colors="black")
+    ax.grid()
+    plt.xlim([-6,8])
+    plt.ylim([1e-6,1])
+
+    fit_vals = np.polyfit(bin_centers, np.log(Htotal), 1)
+    pfit = np.poly1d(fit_vals)
+    fit_centers = np.arange(0,9,0.25)
+    plt.plot(bin_centers, np.exp(pfit(bin_centers)),linestyle = "-",linewidth = 1,color="blue",label=r"$e^{ax+b}$ fit")
+    plt.plot(fit_centers, np.exp(pfit(fit_centers)),linestyle = "-.",linewidth = 1,color="blue",label="extrapolation")
+    # plt.axvline(8, label="threshold", )
+    print(fit_vals)
+    plt.title(f"Residual signal-to-noise ratio",color="black")
+    # plt.title(f"{fit_vals[0]}x+{fit_vals[1]}")
+    # ax.legend(loc='center left', ncol = 1, bbox_to_anchor=(1, 0, 1, 1))
+    ax.legend(loc='upper center', bbox_to_anchor=(-0.15,-0.35,1.2,0.2), ncol=2, fontsize="medium", mode="expand")
+    plt.savefig(out_fold+f"hist_fit.png", bbox_inches='tight')
+    plt.savefig(out_fold+f"hist_fit.pdf", bbox_inches='tight')
+    plt.savefig(out_fold+f"hist_fit.eps", bbox_inches='tight')
     plt.show()
     plt.close()
 
@@ -512,7 +602,7 @@ def get_HD148352_snr():
     print("making subdirectories")
     Path(out_fold).mkdir(parents=True, exist_ok=True)
     target = "HD148352"
-    snr_scale = 5
+    snr_scale = 8
     print(target)
     folder = fold + target
     with pyfits.open(folder + "/alloutputs.fits") as hdulist:
@@ -520,7 +610,7 @@ def get_HD148352_snr():
     y_calib, x_calib = np.unravel_index(np.nanargmax(snr_calib), snr_calib.shape)
     ny, nx = snr_calib.shape
     fig, (ax) = plt.subplots(1,1)
-    img = ax.imshow(snr_calib, origin="lower", vmin=-snr_scale, vmax=30, cmap='cividis')
+    img = ax.imshow(snr_calib, origin="lower", vmin=-5, vmax=35, cmap='cividis')
     ax.plot(ny // 2, nx // 2, "rX", label="HD 148352")
     ax.plot(x_calib, y_calib, "b.", 
         label=r"SNR {:.2f}, $\Delta y$ = {}, $\Delta x$ = {}".format(snr_calib[y_calib, x_calib], y_calib-ny//2, x_calib-nx//2))
@@ -538,7 +628,7 @@ def get_HD148352_snr():
     ax.set_ylabel(r"$\Delta y$")
     ax.grid(linestyle=':', linewidth=1)
     ax.set_title(target)
-    ax.legend(loc='upper center', ncol=3, bbox_to_anchor=(0, -1.11, 1, 1), fontsize='small')
+    ax.legend(loc='upper center', ncol=1, bbox_to_anchor=(0, -1.15, 1, 1), fontsize='small')
     plt.savefig(out_fold+"snr_map.png", bbox_inches='tight')
     plt.savefig(out_fold+"snr_map.pdf", bbox_inches='tight')
     plt.savefig(out_fold+"snr_map.eps", bbox_inches='tight')
@@ -561,7 +651,7 @@ def get_HD148352_snr_larger():
     y_calib, x_calib = np.unravel_index(np.nanargmax(snr_calib), snr_calib.shape)
     ny, nx = snr_calib.shape
     fig, (ax) = plt.subplots(1,1)
-    img = ax.imshow(snr_calib, origin="lower", vmin=-snr_scale, vmax=30, cmap='cividis')
+    img = ax.imshow(snr_calib, origin="lower", vmin=-snr_scale, vmax=35, cmap='cividis')
     ax.plot(ny // 2, nx // 2, "rX", label="HD 148352")
     ax.plot(x_calib, y_calib, "b.", 
         label=r"SNR {:.2f}, $\Delta y$ = {}, $\Delta x$ = {}".format(snr_calib[y_calib, x_calib], y_calib-ny//2, x_calib-nx//2))
@@ -571,15 +661,15 @@ def get_HD148352_snr_larger():
     cbar.set_label("SNR")
     ax.set_xlim([-22+40, 17+40])
     ax.set_ylim([-42+40, 27+40])
-    ax.set_xticks(np.arange(-20+40, 17+40, 5))
+    ax.set_xticks(np.arange(-20+40, 17+40, 10))
     ax.set_yticks(np.arange(-40+40, 27+40, 5))
-    ax.set_xticklabels(np.arange(-20, 17, 5))
+    ax.set_xticklabels(np.arange(-20, 17, 10))
     ax.set_yticklabels(np.arange(-40, 27, 5))
     ax.set_xlabel(r"$\Delta x$")
     ax.set_ylabel(r"$\Delta y$")
     ax.grid(linestyle=':', linewidth=1)
     ax.set_title(target)
-    ax.legend(loc='upper center', ncol=3, bbox_to_anchor=(0, -1.11, 1, 1), fontsize='small')
+    ax.legend(loc='upper center', ncol=1, bbox_to_anchor=(0, -1.13, 1, 1), fontsize='small')
     # plt.savefig(out_fold+"snr_map.png", bbox_inches='tight')
     plt.savefig(out_fold+"snr_map_large.png", bbox_inches='tight')
     plt.savefig(out_fold+"snr_map_large.pdf", bbox_inches='tight')
@@ -598,15 +688,17 @@ def get_HD148352_contrast():
     target = "HD148352"
     print(target)
     folder = fold + target
-    threshold = 5
+    threshold = 8
     with pyfits.open(folder + "/alloutputs.fits") as hdulist:
         t_err_1sig_calib = hdulist[2].data
         r_grid = hdulist[4].data
-        psf_profile = hdulist[5].data
+        # psf_profile = hdulist[5].data
         snr_calib, snr0 = hdulist[0].data, hdulist[3].data
         flux = snr_calib * t_err_1sig_calib
         t_err = t_err_1sig_calib / snr0 * snr_calib 
         # t_err = hdulist[6].data
+    with pyfits.open("/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/20220512_1700K/HD148352/alloutputs.fits") as hdulist:
+        psf_profile = hdulist[5].data
     y_calib, x_calib = np.unravel_index(np.nanargmax(snr_calib), snr_calib.shape)
     detection_flux = flux[y_calib, x_calib]
     ny, nx = snr_calib.shape
@@ -633,13 +725,15 @@ def get_HD148352_contrast():
     plt.legend()
     plt.grid()
     ytick_locations = [5e-1, 3e-1, 1e-1, 5e-2, 3e-2, 1e-2, 1e-3, 3e-4, round(detection_flux, 5)]
+    ytick_labels = [5e-1, 3e-1, 1e-1, 5e-2, 3e-2, "", 1e-3, 3e-4, round(detection_flux, 5)]
     xtick_locations = [3e-2, 5e-2, 3e-1, 5e-1, 1, round(detection_distance, 5)]
     plt.xticks(ticks=xtick_locations, labels=xtick_locations)
-    plt.yticks(ticks=ytick_locations, labels=ytick_locations)
+    plt.yticks(ticks=ytick_locations, labels=ytick_labels)
     plt.savefig(out_fold+"hd_contrast.png", bbox_inches='tight')
     plt.savefig(out_fold+"hd_contrast.pdf", bbox_inches='tight')
     plt.savefig(out_fold+"hd_contrast.eps", bbox_inches='tight')
-    plt.show()
+    # plt.show()
+    plt.close()
 
 def get_ROXs35A_snr():
     print("making subdirectories")
@@ -776,17 +870,19 @@ def get_temp_recover():
             if ind == 0:
                 norm = np.nanmax(snr)
         plt.figure(0)
-        plt.plot(temperatures * 100, snr/norm, marker=".", label=r"$T_{inject}$"+f" = {labels[ind]} K")
+        plt.plot(temperatures * 100, snr/norm, 
+            ls=get_ls(), marker=get_marker(), label=r"$T_{inject}$"+f" = {labels[ind]} K")
     plt.figure(0)
-    plt.legend()
+    plt.legend(fontsize=12)
     plt.grid()
-    plt.title("Relative signal-to-noise ratio at 100 milliarcseconds")
+    plt.title("Relative signal-to-noise ratio at 100 milliarcseconds", fontsize=15)
     plt.xlabel(r"Effective temperature $T_{eff}$ for recovery (K)")
     plt.ylabel("unnormalized SNR")
-    plt.savefig(out_fold + "temp_recover.png")
-    plt.savefig(out_fold + "temp_recover.pdf")
-    plt.savefig(out_fold + "temp_recover.eps")
-    plt.show()
+    plt.savefig(out_fold + "temp_recover.png", bbox_inches='tight')
+    plt.savefig(out_fold + "temp_recover.pdf", bbox_inches='tight')
+    plt.savefig(out_fold + "temp_recover.eps", bbox_inches='tight')
+    # plt.show()
+    plt.close()
 
 def get_tp():
     fold = "/scr3/jruffio/data/osiris_survey/targets/"
@@ -819,17 +915,20 @@ def get_HD148352_rvccf():
     rvs = np.linspace(-4000,4000,41)
     print("making subdirectories")
     Path(out_fold).mkdir(parents=True, exist_ok=True)
-    folder = "/scr3/jruffio/shubh/using-breads/plots/thesis/hd148352/rvccf.fits"
+    folder = "/scr3/jruffio/shubh/using-breads/plots/paper/hd148352/rvccf.fits"
+    planety, planetx = 36, 36
     with pyfits.open(folder) as hdulist:
         snr_calib = hdulist[0].data
         snr0 = hdulist[1].data
+        snr_calib = snr_calib[:, planety, planetx]
     plt.figure()
-    plt.title(r"RV CCF, $\Delta y = \Delta x = - 4$")
-    plt.plot(rvs, snr_calib, marker='1', linestyle='solid', label = "signal-to-noise ratio")
+    plt.title(r"RV CCF, $\Delta y = \Delta x = - 4$", fontsize=20)
+    plt.plot(rvs, snr_calib/np.nanmax(snr_calib), marker='X', linestyle='solid', label = "signal-to-noise ratio")
+    # plt.axvline(0, color="black", ls="dashed")
     # plt.legend()
     plt.grid()
     plt.xlabel(r"radial velocity $RV$ (km/s)")
-    plt.ylabel(r"signal-to-noise ratio $SNR$")
+    plt.ylabel(r"relative SNR")
     plt.savefig(out_fold+f"rvccf.png", bbox_inches='tight')
     plt.savefig(out_fold+f"rvccf.pdf", bbox_inches='tight')
     plt.savefig(out_fold+f"rvccf.eps", bbox_inches='tight')
@@ -845,7 +944,8 @@ def get_HD148352_emcee():
     with pyfits.open(folder) as hdulist:
         samples = hdulist[0].data
     nonlin_labels = [r"$T_{eff}$", r"$\log g$", "spin", r"$RV$"]
-    figure = corner.corner(samples, labels=nonlin_labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
+    figure = corner.corner(samples, labels=nonlin_labels, quantiles=[0.16, 0.5, 0.84], 
+        show_titles=True, label_kwargs=dict(fontsize=20))
     # figure.set_title(r"MCMC Posteriors at $\Delta y = \Delta x = - 4$")
     plt.savefig(out_fold+f"corner.png", bbox_inches='tight')
     plt.savefig(out_fold+f"corner.pdf", bbox_inches='tight')
@@ -870,6 +970,7 @@ def get_large_snr_plot():
             snr_calib = hdulist[0].data
         # y_calib, x_calib = np.unravel_index(np.nanargmax(snr_calib), snr_calib.shape)
         ny, nx = snr_calib.shape
+        snr_calib[np.abs(snr_calib)<5] = np.nan
         img = ax.imshow(snr_calib, origin="lower", vmin=-snr_scale, vmax=snr_scale, cmap='cividis')
         ax.plot(ny // 2, nx // 2, "rX")
         # ax.plot(x_calib, y_calib, "b.")
@@ -886,10 +987,11 @@ def get_large_snr_plot():
         # plt.close()
     cbar = fig.colorbar(img, cax=fig.add_axes([0.92, 0.15, 0.02, 0.7]))
     cbar.set_label("SNR")
-    plt.savefig(out_fold+f"SNRmaps.png", dpi=250)
-    plt.savefig(out_fold+f"SNRmaps.pdf", dpi=250)
-    plt.savefig(out_fold+f"SNRmaps.eps", dpi=250)
-    # plt.show()
+    plt.savefig(out_fold+f"temp.png", dpi=250)
+    # plt.savefig(out_fold+f"SNRmaps.png", dpi=250)
+    # plt.savefig(out_fold+f"SNRmaps.pdf", dpi=250)
+    # plt.savefig(out_fold+f"SNRmaps.eps", dpi=250)
+    plt.show()
     plt.close()
 
 def forward_model_components():
@@ -1154,10 +1256,10 @@ def forward_model_components():
         d, M, s = fm_func(nonlin_paras,dataobj,**fm_paras)
         s = np.ones_like(s)
 
-        np.savez(out_fold+"temp.npz", d=d, M=M, s=s)
+        np.savez(out_fold+"temp.npz", wvs=np.nanmedian(dataobj.wavelengths, axis=(1,2)), d=d, M=M, s=s)
     else:
         npzfile = np.load(out_fold+"temp.npz")
-        d, M, s = npzfile["d"], npzfile["M"], npzfile["s"]
+        wvs, d, M, s = npzfile["wvs"], npzfile["d"], npzfile["M"], npzfile["s"]
 
     validpara = np.where(np.sum(M,axis=0)!=0)
     M = M[:,validpara[0]]
@@ -1187,14 +1289,72 @@ def forward_model_components():
     # plt.legend()
     # plt.show()
 
-    plt.figure()
-    plt.plot(M[:, 7:]+np.array([-2,-1,0,1,2])*0.5)
-    plt.show()
+    colors = ["purple", "red", "green", "orange", "blue"][::-1]
+    fig = plt.figure(figsize=(20, 10))
+    plt.suptitle('Components of the Forward Model', y=0.925, fontsize=25)
+    gs = gridspec.GridSpec(10, 200)
+    # planet model
+    plt.subplot(gs[:3, :99])
+    plt.plot(M[:, 0]/np.nanmax(M[:, 0]))
+    plt.grid()
+    # plt.ylim([-0.1,1.1])
+    # plt.yticks([0, 100, 200, 300, 400, 500, 600], np.arange(0, 601, 100)/600)
+    plt.xticks([0,50,100,150,200,250,300,350,400], ["","","","","","","","",""])
+    plt.ylabel("planet")
+    # telluric model
+    plt.subplot(gs[3:5, :99])
+    plt.plot(M[:, 1]/np.nanmax(M[:, 1]))
+    plt.grid()
+    # plt.yticks([2000, 2500], ["", ""])
+    plt.ylabel("telluric")
+    plt.xticks([0,50,100,150,200,250,300,350,400], ["","","","","","","","",""])
+    # starlight model
+    ax = plt.subplot(gs[:5, 101:])
+    plt.xticks([0,50,100,150,200,250,300,350,400], ["","","","","","","","",""])
+    ax.yaxis.tick_right()
+    for k in range(5):
+        ax.plot(M[:, 2+k], label=f"SC{k+1}", ls=get_ls(), lw=3)
+        ax.grid()
+        plt.ylim([-1.2e-3, 3.25e-3])
+        ax.set_yticks([-1e-3, 0, 1e-3, 2e-3, 3e-3])
+        ax.set_yticklabels(["", "0", "", "", ""])
+        ax.legend(ncol=5, fontsize=15, loc="upper center", bbox_to_anchor=(0, 0.02, 1, 1))
+    # pca modes
+    for k in range(5):
+        plt.subplot(gs[5+k, :99])
+        plt.plot(M[:, 7+k], color=colors[k])
+        plt.grid()
+        plt.ylim([-0.3, 0.3])
+        plt.ylabel(f"PC{k+1}")
+        plt.yticks([-0.2, 0, 0.2], ["", 0, ""])
+        if k != 4:
+            plt.xticks([0,50,100,150,200,250,300,350,400], ["","","","","","","","",""])
+    plt.xlabel("wavelength indices")
+    # combined
+    ax = plt.subplot(gs[5:, 101:])
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
+    alpha, lw = 1, 2
+    plt.plot(d,label=r"$d$ (data)", alpha=alpha, ls=get_ls(), lw=1)
+    plt.plot(paras[0]*M[:,0],label=r"$M_{\psi_p} \phi_p$ (planet)", alpha=alpha, ls=get_ls(), lw=lw)
+    plt.plot(m,label=r"$M_\psi \phi$ (model)", alpha=alpha, ls=get_ls(), lw=3)
+    plt.plot(m-paras[0]*M[:,0],label=r"$M_{\psi_{c}} \phi_{c}$ (star+others)", alpha=alpha, ls=get_ls(), lw=lw)
+    plt.yticks([-2,0,2,4,6,8,10,12,14], [-2,0,2,4,6,8,10,12,14])
+    plt.grid()
+    plt.legend(fontsize=14, ncol=2, loc="lower center", bbox_to_anchor=(0, -0.02, 1, 1))
+    plt.xlabel("wavelength indices")
+    plt.ylabel(r"$DN/s$")
+    # plt.show()
+    plt.savefig(out_fold + "forward_model.png", bbox_inches='tight')
+    plt.savefig(out_fold + "forward_model.pdf", bbox_inches='tight')
+    plt.savefig(out_fold + "forward_model.eps", bbox_inches='tight')
+    plt.close()
 
 
 
 out_fold = "/scr3/jruffio/shubh/using-breads/plots/paper/firstdraft/"
 fold = "/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/20220512_1700K/"
+# fold = "/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/20220926_flux/"
 
 # fold = "/scr3/jruffio/shubh/using-breads/plots/SNRmaps_contrast/20220417/"
 # fold = "/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/20220512_1700K/"
@@ -1224,7 +1384,7 @@ fold = "/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/2
 # get_HD148352_snr()
 # get_HD148352_snr_larger()
 
-# get_HD148352_contrast()
+get_HD148352_contrast()
 
 # get_ROXs35A_snr()
 # get_roxs35a_contrast()
@@ -1239,4 +1399,4 @@ fold = "/scr3/jruffio/code/BREADS_osiris_survey_scripts/plots/SNRmaps_contrast/2
 
 # get_large_snr_plot()
 
-forward_model_components()
+# forward_model_components()
